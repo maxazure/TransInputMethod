@@ -99,28 +99,37 @@ namespace TransInputMethod.Services
                 var config = await _configService.GetConfigAsync();
                 
                 // Parse and register show window hotkey
-                var showHotkeyParts = config.Hotkeys.ShowWindowHotkey.Split('+');
                 var showModifiers = GlobalHotkey.ParseModifierKeys(config.Hotkeys.ShowWindowHotkey);
                 var showKey = GlobalHotkey.ParseKey(config.Hotkeys.ShowWindowHotkey);
                 
                 if (showKey != Keys.None)
                 {
                     _showWindowHotkeyId = _globalHotkey.RegisterHotkey(showModifiers, showKey, "Show Translation Window");
+                    System.Diagnostics.Debug.WriteLine($"注册显示窗口热键: {config.Hotkeys.ShowWindowHotkey} (ID: {_showWindowHotkeyId})");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"显示窗口热键解析失败: {config.Hotkeys.ShowWindowHotkey}");
                 }
 
                 // Parse and register translate hotkey (this will be handled by the floating form)
-                var translateHotkeyParts = config.Hotkeys.TranslateHotkey.Split('+');
                 var translateModifiers = GlobalHotkey.ParseModifierKeys(config.Hotkeys.TranslateHotkey);
                 var translateKey = GlobalHotkey.ParseKey(config.Hotkeys.TranslateHotkey);
                 
                 if (translateKey != Keys.None)
                 {
                     _translateHotkeyId = _globalHotkey.RegisterHotkey(translateModifiers, translateKey, "Translate Text");
+                    System.Diagnostics.Debug.WriteLine($"注册翻译热键: {config.Hotkeys.TranslateHotkey} (ID: {_translateHotkeyId})");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"翻译热键解析失败: {config.Hotkeys.TranslateHotkey}");
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"热键设置失败: {ex.Message}", "警告", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                System.Diagnostics.Debug.WriteLine($"热键设置异常: {ex}");
             }
         }
 
@@ -138,7 +147,7 @@ namespace TransInputMethod.Services
             // The translate hotkey is handled by the floating form itself
         }
 
-        private void ShowFloatingForm()
+        private async void ShowFloatingForm()
         {
             try
             {
@@ -147,7 +156,10 @@ namespace TransInputMethod.Services
                     CreateFloatingForm();
                 }
 
-                _floatingForm?.ShowAtCursor();
+                if (_floatingForm != null)
+                {
+                    await _floatingForm.ShowAtCursor();
+                }
             }
             catch (Exception ex)
             {
@@ -168,15 +180,19 @@ namespace TransInputMethod.Services
             }
         }
 
-        private void ShowSettingsForm()
+        private async void ShowSettingsForm()
         {
             try
             {
                 var settingsForm = new SettingsForm(_configService);
                 if (settingsForm.ShowDialog() == DialogResult.OK)
                 {
-                    // Reload hotkeys if configuration changed
-                    Task.Run(async () => await SetupGlobalHotkeys());
+                    // Unregister old hotkeys first
+                    _globalHotkey.UnregisterHotkey(_showWindowHotkeyId);
+                    _globalHotkey.UnregisterHotkey(_translateHotkeyId);
+                    
+                    // Reload hotkeys with new configuration
+                    await SetupGlobalHotkeys();
                 }
             }
             catch (Exception ex)

@@ -35,7 +35,7 @@ namespace TransInputMethod.Forms
             
             InitializeComponent();
             SetupForm();
-            LoadConfiguration();
+            _ = LoadConfiguration(); // Fire and forget for constructor
         }
 
         private void InitializeComponent()
@@ -208,7 +208,7 @@ namespace TransInputMethod.Forms
             _isDragging = false;
         }
 
-        private async void LoadConfiguration()
+        private async Task LoadConfiguration()
         {
             try
             {
@@ -444,7 +444,7 @@ namespace TransInputMethod.Forms
             }
         }
 
-        public void ShowAtCursor()
+        public async Task ShowAtCursor()
         {
             var cursorPos = Cursor.Position;
             var screen = Screen.FromPoint(cursorPos);
@@ -454,6 +454,10 @@ namespace TransInputMethod.Forms
             var y = Math.Min(cursorPos.Y + 20, screen.WorkingArea.Bottom - this.Height);
             
             this.Location = new Point(x, y);
+            
+            // Reload configuration each time the form is shown
+            await LoadConfiguration();
+            
             this.Show();
             this.Activate();
             _mainTextBox.Focus();
