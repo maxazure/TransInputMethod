@@ -423,8 +423,15 @@ namespace TransInputMethod.Forms
 
         private void HistoryButton_Click(object? sender, EventArgs e)
         {
-            // This will be implemented when we create the HistoryForm
-            MessageBox.Show("历史记录窗体将在下一步实现", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            try
+            {
+                var historyForm = new HistoryForm(_dbContext);
+                historyForm.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"打开历史记录失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void ScenarioComboBox_SelectedIndexChanged(object? sender, EventArgs e)

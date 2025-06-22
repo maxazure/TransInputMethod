@@ -161,8 +161,12 @@ namespace TransInputMethod.Services
         {
             try
             {
-                // This will be implemented when we create the SettingsForm
-                MessageBox.Show("设置窗体将在下一步实现", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var settingsForm = new SettingsForm(_configService);
+                if (settingsForm.ShowDialog() == DialogResult.OK)
+                {
+                    // Reload hotkeys if configuration changed
+                    Task.Run(async () => await SetupGlobalHotkeys());
+                }
             }
             catch (Exception ex)
             {
