@@ -2,12 +2,42 @@ using TransInputMethod.Data;
 using TransInputMethod.Models;
 using TransInputMethod.Services;
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace TransInputMethod.Forms
 {
     public partial class FloatingTranslationForm : Form
     {
+        // Windows API for getting caret position
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetFocus();
+
+        [DllImport("user32.dll")]
+        private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetCaretPos(out Point point);
+
+        [DllImport("user32.dll")]
+        private static extern bool ClientToScreen(IntPtr hWnd, ref Point point);
+
+        [DllImport("kernel32.dll")]
+        private static extern uint GetCurrentThreadId();
+
+        [DllImport("user32.dll")]
+        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+        private const int KEYEVENTF_KEYUP = 0x02;
+        private const int VK_CONTROL = 0x11;
+        private const int VK_V = 0x56;
+
         private readonly TranslationService _translationService;
         private readonly ConfigService _configService;
         private readonly TranslationDbContext _dbContext;
@@ -26,6 +56,7 @@ namespace TransInputMethod.Forms
         private List<TranslationHistory> _currentHistory = new List<TranslationHistory>();
         private int _historyIndex = -1;
         private bool _isTranslating = false;
+        private bool _hasTranslated = false; // Track if we have translated once
 
         public FloatingTranslationForm(TranslationService translationService, ConfigService configService, TranslationDbContext dbContext)
         {
@@ -277,6 +308,24 @@ namespace TransInputMethod.Forms
                 if (string.IsNullOrWhiteSpace(_currentInputText))
                     return;
 
+                // If we have already translated, copy to clipboard, close, and paste
+                if (_hasTranslated && !string.IsNullOrEmpty(_lastTranslatedText))
+                {
+                    _statusLabel.Text = "正在复制并粘贴...";
+                    _statusLabel.ForeColor = Color.Blue;
+                    
+                    // Hide the form first
+                    this.Hide();
+                    
+                    // Wait a moment for the form to hide
+                    await Task.Delay(100);
+                    
+                    // Paste to active window
+                    PasteToActiveWindow(_lastTranslatedText);
+                    
+                    return;
+                }
+
                 // Check if same text - if so, copy last translation
                 if (_currentInputText.Trim() == _lastTranslatedText.Trim())
                 {
@@ -284,8 +333,10 @@ namespace TransInputMethod.Forms
                     if (lastTranslation != null)
                     {
                         Clipboard.SetText(lastTranslation.TranslatedText);
-                        _statusLabel.Text = "译文已复制到剪贴板";
+                        _statusLabel.Text = "译文已复制到剪贴板，再次按 Ctrl+Enter 粘贴";
                         _statusLabel.ForeColor = Color.Green;
+                        _lastTranslatedText = lastTranslation.TranslatedText;
+                        _hasTranslated = true;
                         return;
                     }
                 }
@@ -315,6 +366,7 @@ namespace TransInputMethod.Forms
                 {
                     _mainTextBox.Text = result.TranslatedText;
                     _lastTranslatedText = result.TranslatedText;
+                    _hasTranslated = true;
                     
                     // Save to database
                     var history = new TranslationHistory
@@ -328,7 +380,7 @@ namespace TransInputMethod.Forms
                     };
 
                     await _dbContext.AddTranslationAsync(history);
-                    _statusLabel.Text = "翻译完成，再次按 Ctrl+Enter 复制";
+                    _statusLabel.Text = "翻译完成，再次按 Ctrl+Enter 粘贴到光标处";
                     _statusLabel.ForeColor = Color.Green;
 
                     // Refresh history navigation
@@ -444,9 +496,89 @@ namespace TransInputMethod.Forms
             }
         }
 
+        private Point GetTextCursorPosition()
+        {
+            try
+            {
+                // Get the foreground window (currently active window)
+                IntPtr foregroundWindow = GetForegroundWindow();
+                if (foregroundWindow == IntPtr.Zero)
+                    return GetScreenCenterPosition();
+
+                // Get the thread ID of the foreground window
+                uint foregroundThreadId = GetWindowThreadProcessId(foregroundWindow, out _);
+                uint currentThreadId = GetCurrentThreadId();
+
+                // Attach to the foreground window's thread to get caret position
+                if (foregroundThreadId != currentThreadId)
+                {
+                    AttachThreadInput(currentThreadId, foregroundThreadId, true);
+                }
+
+                // Get the focus window and caret position
+                IntPtr focusWindow = GetFocus();
+                if (focusWindow != IntPtr.Zero && GetCaretPos(out Point caretPos))
+                {
+                    // Convert caret position to screen coordinates
+                    ClientToScreen(focusWindow, ref caretPos);
+                    
+                    // Detach from the thread
+                    if (foregroundThreadId != currentThreadId)
+                    {
+                        AttachThreadInput(currentThreadId, foregroundThreadId, false);
+                    }
+                    
+                    return caretPos;
+                }
+
+                // Detach from the thread
+                if (foregroundThreadId != currentThreadId)
+                {
+                    AttachThreadInput(currentThreadId, foregroundThreadId, false);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"获取文本光标位置失败: {ex.Message}");
+            }
+
+            // Fallback to screen center if can't get caret position
+            return GetScreenCenterPosition();
+        }
+
+        private Point GetScreenCenterPosition()
+        {
+            var screen = Screen.PrimaryScreen;
+            var centerX = screen.WorkingArea.Left + (screen.WorkingArea.Width - this.Width) / 2;
+            var centerY = screen.WorkingArea.Top + (screen.WorkingArea.Height - this.Height) / 2;
+            return new Point(centerX, centerY);
+        }
+
+        private async void PasteToActiveWindow(string text)
+        {
+            try
+            {
+                // Set clipboard content
+                Clipboard.SetText(text);
+                
+                // Wait a moment to ensure clipboard is set
+                await Task.Delay(50);
+                
+                // Simulate Ctrl+V to paste
+                keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
+                keybd_event(VK_V, 0, 0, UIntPtr.Zero);
+                keybd_event(VK_V, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"粘贴到活动窗口失败: {ex.Message}");
+            }
+        }
+
         public async Task ShowAtCursor()
         {
-            var cursorPos = Cursor.Position;
+            var cursorPos = GetTextCursorPosition();
             var screen = Screen.FromPoint(cursorPos);
             
             // Position the form near cursor but ensure it's fully visible
@@ -460,14 +592,21 @@ namespace TransInputMethod.Forms
             
             this.Show();
             this.Activate();
-            _mainTextBox.Focus();
+            this.TopMost = true;
             
-            // Clear previous content
+            // Ensure text box gets focus with a slight delay
+            await Task.Delay(10);
+            _mainTextBox.Focus();
+            _mainTextBox.Select();
+            
+            // Clear previous content and reset state
             if (!_isTranslating)
             {
                 _mainTextBox.Clear();
                 _statusLabel.Text = "输入文本后按 Ctrl+Enter 翻译";
                 _statusLabel.ForeColor = Color.Gray;
+                _hasTranslated = false;
+                _lastTranslatedText = string.Empty;
             }
         }
     }
