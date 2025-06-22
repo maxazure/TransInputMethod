@@ -69,6 +69,12 @@ namespace TransInputMethod.Services
                 _httpClient.DefaultRequestHeaders.Clear();
                 _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {config.Api.ApiKey}");
                 
+                // Add Organization ID header if provided
+                if (!string.IsNullOrEmpty(config.Api.OrganizationId))
+                {
+                    _httpClient.DefaultRequestHeaders.Add("OpenAI-Organization", config.Api.OrganizationId);
+                }
+                
                 // Add User-Agent header as recommended by OpenAI
                 _httpClient.DefaultRequestHeaders.Add("User-Agent", "TransInputMethod/1.0");
                 

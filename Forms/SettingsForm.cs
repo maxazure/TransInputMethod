@@ -22,6 +22,7 @@ namespace TransInputMethod.Forms
         private TextBox _baseUrlTextBox;
         private TextBox _apiKeyTextBox;
         private CheckBox _showApiKeyCheckBox;
+        private TextBox _organizationIdTextBox;
         private ComboBox _modelComboBox;
         private NumericUpDown _timeoutNumericUpDown;
 
@@ -151,6 +152,24 @@ namespace TransInputMethod.Forms
             
             y += 35;
 
+            // Organization ID
+            var organizationIdLabel = new Label
+            {
+                Text = "Organization ID:",
+                Location = new Point(20, y),
+                Size = new Size(100, 23),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+            
+            _organizationIdTextBox = new TextBox
+            {
+                Location = new Point(130, y),
+                Size = new Size(450, 23),
+                PlaceholderText = "可选 - 仅在使用组织账户时需要"
+            };
+            
+            y += 35;
+
             // Model
             var modelLabel = new Label
             {
@@ -195,6 +214,7 @@ namespace TransInputMethod.Forms
             { 
                 baseUrlLabel, _baseUrlTextBox, 
                 apiKeyLabel, _apiKeyTextBox, _showApiKeyCheckBox,
+                organizationIdLabel, _organizationIdTextBox,
                 modelLabel, _modelComboBox,
                 timeoutLabel, _timeoutNumericUpDown
             });
@@ -496,6 +516,7 @@ namespace TransInputMethod.Forms
                 // Load API settings
                 _baseUrlTextBox.Text = _config.Api.BaseUrl;
                 _apiKeyTextBox.Text = _config.Api.ApiKey;
+                _organizationIdTextBox.Text = _config.Api.OrganizationId;
                 _modelComboBox.Text = _config.Api.Model;
                 _timeoutNumericUpDown.Value = _config.Api.Timeout;
 
@@ -715,6 +736,7 @@ namespace TransInputMethod.Forms
                 // Update configuration
                 _config.Api.BaseUrl = _baseUrlTextBox.Text.Trim();
                 _config.Api.ApiKey = _apiKeyTextBox.Text.Trim();
+                _config.Api.OrganizationId = _organizationIdTextBox.Text.Trim();
                 _config.Api.Model = _modelComboBox.Text;
                 _config.Api.Timeout = (int)_timeoutNumericUpDown.Value;
 
@@ -755,12 +777,21 @@ namespace TransInputMethod.Forms
                 _testConnectionButton.Enabled = false;
                 _testConnectionButton.Text = "测试中...";
 
-                // Create a temporary config for testing
+                // Create a temporary config for testing with default scenarios
                 var testConfig = new AppConfig();
                 testConfig.Api.BaseUrl = _baseUrlTextBox.Text.Trim();
                 testConfig.Api.ApiKey = _apiKeyTextBox.Text.Trim();
+                testConfig.Api.OrganizationId = _organizationIdTextBox.Text.Trim();
                 testConfig.Api.Model = _modelComboBox.Text;
                 testConfig.Api.Timeout = (int)_timeoutNumericUpDown.Value;
+                
+                // Add a default scenario for testing
+                testConfig.Scenarios.Add(new TranslationScenario
+                {
+                    Name = "测试",
+                    Prompt = "你是一个专业的翻译助手。请将用户输入的文本准确翻译。如果是中文，翻译成英文；如果是英文，翻译成中文。只返回翻译结果，不要添加任何解释。",
+                    IsDefault = true
+                });
 
                 var tempConfigService = new ConfigService();
                 await tempConfigService.SaveConfigAsync(testConfig);
