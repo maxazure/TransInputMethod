@@ -4,8 +4,9 @@ on:
   push:
     tags:
       - 'v*.*.*'  # 触发条件：推送版本标签 (如 v0.1.0)
-  release:
-    types: [published]
+
+permissions:
+  contents: write  # 允许创建 Release 和上传文件
 
 jobs:
   build-and-release:
@@ -157,13 +158,10 @@ jobs:
       shell: pwsh
       
     - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.ref }}
-        release_name: TransInputMethod v${{ steps.get_version.outputs.VERSION }}
+        tag_name: v${{ steps.get_version.outputs.VERSION }}
+        name: TransInputMethod v${{ steps.get_version.outputs.VERSION }}
         body: |
           ## TransInputMethod v${{ steps.get_version.outputs.VERSION }}
           
@@ -208,35 +206,11 @@ jobs:
           ---
           
           **完整更新日志**: [CHANGELOG.md](https://github.com/maxazure/TransInputMethod/blob/main/changelogs/CHANGELOG.md)
+        files: |
+          TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Portable.zip
+          TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Framework.zip
+          checksums.txt
         draft: false
         prerelease: false
-        
-    - name: Upload Portable Package
-      uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Portable.zip
-        asset_name: TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Portable.zip
-        asset_content_type: application/zip
-        
-    - name: Upload Framework Package
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Framework.zip
-        asset_name: TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Framework.zip
-        asset_content_type: application/zip
-        
-    - name: Upload Checksums
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./checksums.txt
-        asset_name: checksums.txt
-        asset_content_type: text/plain
