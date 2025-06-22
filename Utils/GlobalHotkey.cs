@@ -123,29 +123,26 @@ namespace TransInputMethod.Utils
 
         private bool IsHotkeyPressed(HotkeyInfo hotkey)
         {
-            // Check if all required modifier keys are pressed
-            var requiredModifiers = new List<Keys>();
-            
-            if ((hotkey.Modifiers & ModifierKeys.Control) != 0)
-                requiredModifiers.Add(Keys.ControlKey);
-            if ((hotkey.Modifiers & ModifierKeys.Shift) != 0)
-                requiredModifiers.Add(Keys.ShiftKey);
-            if ((hotkey.Modifiers & ModifierKeys.Alt) != 0)
-                requiredModifiers.Add(Keys.Menu);
-            if ((hotkey.Modifiers & ModifierKeys.Win) != 0)
-                requiredModifiers.Add(Keys.LWin);
+            // Check if the main key is pressed
+            if (!_pressedKeys.Contains(hotkey.Key))
+                return false;
 
-            // Check if the main key and all modifiers are pressed
-            var allPressed = _pressedKeys.Contains(hotkey.Key) && 
-                           requiredModifiers.All(key => _pressedKeys.Contains(key));
+            // Check modifier keys
+            var hasControl = _pressedKeys.Contains(Keys.LControlKey) || _pressedKeys.Contains(Keys.RControlKey) || _pressedKeys.Contains(Keys.ControlKey);
+            var hasShift = _pressedKeys.Contains(Keys.LShiftKey) || _pressedKeys.Contains(Keys.RShiftKey) || _pressedKeys.Contains(Keys.ShiftKey);
+            var hasAlt = _pressedKeys.Contains(Keys.LMenu) || _pressedKeys.Contains(Keys.RMenu) || _pressedKeys.Contains(Keys.Menu);
+            var hasWin = _pressedKeys.Contains(Keys.LWin) || _pressedKeys.Contains(Keys.RWin);
 
-            // Also check if no extra modifier keys are pressed
-            var extraModifiers = _pressedKeys.Where(key => 
-                key == Keys.ControlKey || key == Keys.ShiftKey || 
-                key == Keys.Menu || key == Keys.LWin || key == Keys.RWin)
-                .Except(requiredModifiers);
+            var needsControl = (hotkey.Modifiers & ModifierKeys.Control) != 0;
+            var needsShift = (hotkey.Modifiers & ModifierKeys.Shift) != 0;
+            var needsAlt = (hotkey.Modifiers & ModifierKeys.Alt) != 0;
+            var needsWin = (hotkey.Modifiers & ModifierKeys.Win) != 0;
 
-            return allPressed && !extraModifiers.Any();
+            // All required modifiers must be pressed, and no extra modifiers should be pressed
+            return hasControl == needsControl && 
+                   hasShift == needsShift && 
+                   hasAlt == needsAlt && 
+                   hasWin == needsWin;
         }
 
         public int RegisterHotkey(ModifierKeys modifiers, Keys key, string description = "")

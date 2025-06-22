@@ -68,6 +68,10 @@ namespace TransInputMethod.Services
 
                 _httpClient.DefaultRequestHeaders.Clear();
                 _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {config.Api.ApiKey}");
+                
+                // Add User-Agent header as recommended by OpenAI
+                _httpClient.DefaultRequestHeaders.Add("User-Agent", "TransInputMethod/1.0");
+                
                 _httpClient.Timeout = TimeSpan.FromSeconds(config.Api.Timeout);
 
                 var baseUrl = config.Api.BaseUrl.TrimEnd('/');

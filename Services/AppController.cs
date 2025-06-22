@@ -14,6 +14,7 @@ namespace TransInputMethod.Services
         
         private FloatingTranslationForm? _floatingForm;
         private NotifyIcon? _notifyIcon;
+        private Form _hiddenForm; // Hidden form to provide window handle
         
         private int _showWindowHotkeyId;
         private int _translateHotkeyId;
@@ -23,7 +24,17 @@ namespace TransInputMethod.Services
             _configService = new ConfigService();
             _translationService = new TranslationService(_configService);
             _dbContext = new TranslationDbContext();
-            _globalHotkey = new GlobalHotkey(IntPtr.Zero);
+            
+            // Create hidden form to provide window handle for global hotkeys
+            _hiddenForm = new Form
+            {
+                WindowState = FormWindowState.Minimized,
+                ShowInTaskbar = false,
+                Visible = false
+            };
+            _hiddenForm.CreateControl(); // Force handle creation
+            
+            _globalHotkey = new GlobalHotkey(_hiddenForm.Handle);
 
             InitializeAsync();
         }
@@ -148,8 +159,8 @@ namespace TransInputMethod.Services
         {
             try
             {
-                // This will be implemented when we create the HistoryForm
-                MessageBox.Show("历史记录窗体将在下一步实现", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var historyForm = new HistoryForm(_dbContext);
+                historyForm.Show();
             }
             catch (Exception ex)
             {
@@ -183,6 +194,7 @@ namespace TransInputMethod.Services
                 _floatingForm?.Dispose();
                 _translationService?.Dispose();
                 _dbContext?.Dispose();
+                _hiddenForm?.Dispose();
                 
                 Application.Exit();
             }

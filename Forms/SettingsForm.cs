@@ -1,5 +1,6 @@
 using TransInputMethod.Models;
 using TransInputMethod.Services;
+using TransInputMethod.Utils;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -25,8 +26,8 @@ namespace TransInputMethod.Forms
         private NumericUpDown _timeoutNumericUpDown;
 
         // Hotkey settings controls
-        private TextBox _showWindowHotkeyTextBox;
-        private TextBox _translateHotkeyTextBox;
+        private HotkeyTextBox _showWindowHotkeyTextBox;
+        private HotkeyTextBox _translateHotkeyTextBox;
 
         // Scenario settings controls
         private ListBox _scenarioListBox;
@@ -212,13 +213,13 @@ namespace TransInputMethod.Forms
                 TextAlign = ContentAlignment.MiddleLeft
             };
             
-            _showWindowHotkeyTextBox = new TextBox
+            _showWindowHotkeyTextBox = new HotkeyTextBox
             {
                 Location = new Point(150, y),
-                Size = new Size(200, 23),
-                Text = "Shift+Enter",
-                ReadOnly = true,
-                BackColor = Color.White
+                Size = new Size(200, 23)
+            };
+            _showWindowHotkeyTextBox.HotkeyChanged += (s, e) => {
+                // Update configuration when hotkey changes
             };
             
             y += 35;
@@ -232,20 +233,20 @@ namespace TransInputMethod.Forms
                 TextAlign = ContentAlignment.MiddleLeft
             };
             
-            _translateHotkeyTextBox = new TextBox
+            _translateHotkeyTextBox = new HotkeyTextBox
             {
                 Location = new Point(150, y),
-                Size = new Size(200, 23),
-                Text = "Ctrl+Enter",
-                ReadOnly = true,
-                BackColor = Color.White
+                Size = new Size(200, 23)
+            };
+            _translateHotkeyTextBox.HotkeyChanged += (s, e) => {
+                // Update configuration when hotkey changes
             };
             
             y += 50;
 
             var hotkeyNote = new Label
             {
-                Text = "注意: 热键配置当前为只读模式，将在后续版本中支持自定义配置",
+                Text = "提示: 点击输入框后按下组合键即可设置快捷键",
                 Location = new Point(20, y),
                 Size = new Size(550, 40),
                 ForeColor = Color.Gray,
@@ -499,8 +500,7 @@ namespace TransInputMethod.Forms
                 _timeoutNumericUpDown.Value = _config.Api.Timeout;
 
                 // Load hotkey settings
-                _showWindowHotkeyTextBox.Text = _config.Hotkeys.ShowWindowHotkey;
-                _translateHotkeyTextBox.Text = _config.Hotkeys.TranslateHotkey;
+                LoadHotkeySettings();
 
                 // Load UI settings
                 _windowWidthNumericUpDown.Value = _config.Ui.WindowWidth;
@@ -530,6 +530,42 @@ namespace TransInputMethod.Forms
             {
                 _scenarioListBox.SelectedIndex = 0;
             }
+        }
+
+        private void LoadHotkeySettings()
+        {
+            // Parse show window hotkey
+            var showModifiers = GlobalHotkey.ParseModifierKeys(_config.Hotkeys.ShowWindowHotkey);
+            var showKey = GlobalHotkey.ParseKey(_config.Hotkeys.ShowWindowHotkey);
+            _showWindowHotkeyTextBox.SetHotkey(showModifiers, showKey);
+
+            // Parse translate hotkey
+            var translateModifiers = GlobalHotkey.ParseModifierKeys(_config.Hotkeys.TranslateHotkey);
+            var translateKey = GlobalHotkey.ParseKey(_config.Hotkeys.TranslateHotkey);
+            _translateHotkeyTextBox.SetHotkey(translateModifiers, translateKey);
+        }
+
+        private string FormatHotkey(GlobalHotkey.ModifierKeys modifiers, Keys key)
+        {
+            var parts = new List<string>();
+
+            if ((modifiers & GlobalHotkey.ModifierKeys.Control) != 0)
+                parts.Add("Ctrl");
+            if ((modifiers & GlobalHotkey.ModifierKeys.Alt) != 0)
+                parts.Add("Alt");
+            if ((modifiers & GlobalHotkey.ModifierKeys.Shift) != 0)
+                parts.Add("Shift");
+            if ((modifiers & GlobalHotkey.ModifierKeys.Win) != 0)
+                parts.Add("Win");
+
+            if (key != Keys.None)
+            {
+                var keyName = HotkeyCapture.GetKeyDisplayName(key);
+                if (!string.IsNullOrEmpty(keyName))
+                    parts.Add(keyName);
+            }
+
+            return string.Join("+", parts);
         }
 
         private void ShowApiKeyCheckBox_CheckedChanged(object? sender, EventArgs e)
@@ -682,8 +718,12 @@ namespace TransInputMethod.Forms
                 _config.Api.Model = _modelComboBox.Text;
                 _config.Api.Timeout = (int)_timeoutNumericUpDown.Value;
 
-                _config.Hotkeys.ShowWindowHotkey = _showWindowHotkeyTextBox.Text;
-                _config.Hotkeys.TranslateHotkey = _translateHotkeyTextBox.Text;
+                // Update hotkey settings
+                var (showModifiers, showKey) = _showWindowHotkeyTextBox.GetHotkey();
+                _config.Hotkeys.ShowWindowHotkey = FormatHotkey(showModifiers, showKey);
+                
+                var (translateModifiers, translateKey) = _translateHotkeyTextBox.GetHotkey();
+                _config.Hotkeys.TranslateHotkey = FormatHotkey(translateModifiers, translateKey);
 
                 _config.Ui.WindowWidth = (int)_windowWidthNumericUpDown.Value;
                 _config.Ui.WindowOpacity = _opacityTrackBar.Value;
