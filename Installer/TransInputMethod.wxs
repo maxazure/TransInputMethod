@@ -1,0 +1,91 @@
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"&gt;
+  &lt;Product Id="*" 
+           Name="TransInputMethod" 
+           Language="2052" 
+           Version="0.1.0.0" 
+           Manufacturer="maxazure" 
+           UpgradeCode="C7F5B8E2-9A3D-4E1F-8C2B-5D6F7A8B9C0D"&gt;
+    
+    &lt;Package InstallerVersion="200" 
+             Compressed="yes" 
+             InstallScope="perUser"
+             Description="悬浮翻译输入法工具 - 支持中英文互译的全局悬浮窗口"
+             Manufacturer="maxazure"
+             Comments="Copyright © maxazure 2024" /&gt;
+
+    &lt;MajorUpgrade DowngradeErrorMessage="已安装了更新的版本，无法降级安装。" /&gt;
+
+    &lt;MediaTemplate EmbedCab="yes" /&gt;
+
+    &lt;Feature Id="ProductFeature" Title="TransInputMethod" Level="1"&gt;
+      &lt;ComponentGroupRef Id="ProductComponents" /&gt;
+      &lt;ComponentRef Id="ApplicationShortcut" /&gt;
+    &lt;/Feature&gt;
+    
+    &lt;!-- UI Configuration --&gt;
+    &lt;UIRef Id="WixUI_InstallDir" /&gt;
+    &lt;Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" /&gt;
+  &lt;/Product&gt;
+
+  &lt;Fragment&gt;
+    &lt;Directory Id="TARGETDIR" Name="SourceDir"&gt;
+      &lt;Directory Id="LocalAppDataFolder"&gt;
+        &lt;Directory Id="INSTALLFOLDER" Name="TransInputMethod" /&gt;
+      &lt;/Directory&gt;
+      &lt;Directory Id="ProgramMenuFolder"&gt;
+        &lt;Directory Id="ApplicationProgramsFolder" Name="TransInputMethod" /&gt;
+      &lt;/Directory&gt;
+      &lt;Directory Id="DesktopFolder" Name="Desktop" /&gt;
+    &lt;/Directory&gt;
+  &lt;/Fragment&gt;
+
+  &lt;Fragment&gt;
+    &lt;ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER"&gt;
+      &lt;Component Id="MainExecutable" Guid="*"&gt;
+        &lt;File Id="TransInputMethodExe" 
+              Source="$(var.SourceDir)\TransInputMethod.exe" 
+              KeyPath="yes" /&gt;
+      &lt;/Component&gt;
+      
+      &lt;Component Id="Dependencies" Guid="*"&gt;
+        &lt;File Id="MicrosoftDataSqliteDll" 
+              Source="$(var.SourceDir)\Microsoft.Data.Sqlite.dll" /&gt;
+        &lt;File Id="NewtonsoftJsonDll" 
+              Source="$(var.SourceDir)\Newtonsoft.Json.dll" /&gt;
+        &lt;File Id="TransInputMethodDepsJson" 
+              Source="$(var.SourceDir)\TransInputMethod.deps.json" /&gt;
+        &lt;File Id="TransInputMethodRuntimeConfigJson" 
+              Source="$(var.SourceDir)\TransInputMethod.runtimeconfig.json" /&gt;
+      &lt;/Component&gt;
+      
+      &lt;Component Id="SqliteNative" Guid="*"&gt;
+        &lt;CreateFolder /&gt;
+        &lt;File Id="SqliteCoreDll" 
+              Source="$(var.SourceDir)\runtimes\win-x64\native\e_sqlite3.dll" /&gt;
+      &lt;/Component&gt;
+    &lt;/ComponentGroup&gt;
+
+    &lt;!-- Desktop and Start Menu Shortcuts --&gt;
+    &lt;Component Id="ApplicationShortcut" Directory="ApplicationProgramsFolder" Guid="*"&gt;
+      &lt;Shortcut Id="ApplicationStartMenuShortcut"
+                Name="TransInputMethod"
+                Description="悬浮翻译输入法工具"
+                Target="[#TransInputMethodExe]"
+                WorkingDirectory="INSTALLFOLDER" /&gt;
+      &lt;Shortcut Id="ApplicationDesktopShortcut"
+                Directory="DesktopFolder"
+                Name="TransInputMethod"
+                Description="悬浮翻译输入法工具"
+                Target="[#TransInputMethodExe]"
+                WorkingDirectory="INSTALLFOLDER" /&gt;
+      &lt;RemoveFolder Id="ApplicationProgramsFolder" On="uninstall" /&gt;
+      &lt;RegistryValue Root="HKCU" 
+                     Key="Software\maxazure\TransInputMethod" 
+                     Name="installed" 
+                     Type="integer" 
+                     Value="1" 
+                     KeyPath="yes" /&gt;
+    &lt;/Component&gt;
+  &lt;/Fragment&gt;
+&lt;/Wix&gt;

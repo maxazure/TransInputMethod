@@ -1,0 +1,18 @@
+&lt;Project Sdk="WiX.SDK/4.0.0"&gt;
+
+  &lt;PropertyGroup&gt;
+    &lt;OutputType&gt;Package&lt;/OutputType&gt;
+    &lt;TargetFramework&gt;net472&lt;/TargetFramework&gt;
+    &lt;OutputName&gt;TransInputMethodSetup&lt;/OutputName&gt;
+    &lt;OutputPath&gt;bin\$(Configuration)\&lt;/OutputPath&gt;
+  &lt;/PropertyGroup&gt;
+
+  &lt;ItemGroup&gt;
+    &lt;PackageReference Include="WiX" Version="4.0.4" /&gt;
+  &lt;/ItemGroup&gt;
+
+  &lt;ItemGroup&gt;
+    &lt;Compile Include="Product.wxs" /&gt;
+  &lt;/ItemGroup&gt;
+
+&lt;/Project&gt;

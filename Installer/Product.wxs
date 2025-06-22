@@ -1,0 +1,122 @@
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"&gt;
+  &lt;Product Id="*" 
+           Name="TransInputMethod" 
+           Language="2052" 
+           Version="0.1.0.0" 
+           Manufacturer="maxazure" 
+           UpgradeCode="C7F5B8E2-9A3D-4E1F-8C2B-5D6F7A8B9C0D"&gt;
+    
+    &lt;Package InstallerVersion="200" 
+             Compressed="yes" 
+             InstallScope="perUser"
+             Description="悬浮翻译输入法工具 - 支持中英文互译的全局悬浮窗口"
+             Manufacturer="maxazure"
+             Comments="Copyright © maxazure 2024" /&gt;
+
+    &lt;MajorUpgrade DowngradeErrorMessage="已安装了更新的版本，无法降级安装。" /&gt;
+
+    &lt;MediaTemplate EmbedCab="yes" /&gt;
+
+    &lt;Feature Id="ProductFeature" Title="TransInputMethod" Level="1"&gt;
+      &lt;ComponentGroupRef Id="ProductComponents" /&gt;
+      &lt;ComponentRef Id="ApplicationShortcut" /&gt;
+      &lt;ComponentRef Id="StartupShortcut" /&gt;
+    &lt;/Feature&gt;
+    
+    &lt;!-- UI Configuration --&gt;
+    &lt;UI&gt;
+      &lt;UIRef Id="WixUI_InstallDir" /&gt;
+      &lt;Publish Dialog="WelcomeDlg"
+               Control="Next"
+               Event="NewDialog"
+               Value="InstallDirDlg"
+               Order="2"&gt;1&lt;/Publish&gt;
+      &lt;Publish Dialog="InstallDirDlg"
+               Control="Back"
+               Event="NewDialog"
+               Value="WelcomeDlg"
+               Order="2"&gt;1&lt;/Publish&gt;
+    &lt;/UI&gt;
+    
+    &lt;Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" /&gt;
+    
+    &lt;!-- Custom license text --&gt;
+    &lt;WixVariable Id="WixUILicenseRtf" Value="License.rtf" /&gt;
+  &lt;/Product&gt;
+
+  &lt;Fragment&gt;
+    &lt;Directory Id="TARGETDIR" Name="SourceDir"&gt;
+      &lt;Directory Id="LocalAppDataFolder"&gt;
+        &lt;Directory Id="INSTALLFOLDER" Name="TransInputMethod" /&gt;
+      &lt;/Directory&gt;
+      &lt;Directory Id="ProgramMenuFolder"&gt;
+        &lt;Directory Id="ApplicationProgramsFolder" Name="TransInputMethod" /&gt;
+      &lt;/Directory&gt;
+      &lt;Directory Id="StartupFolder" /&gt;
+    &lt;/Directory&gt;
+  &lt;/Fragment&gt;
+
+  &lt;Fragment&gt;
+    &lt;ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER"&gt;
+      &lt;Component Id="TransInputMethodExe" Guid="A1B2C3D4-E5F6-7890-ABCD-EF1234567890"&gt;
+        &lt;File Id="TransInputMethodExe" 
+              Source="..\bin\Release\net8.0-windows\win-x64\publish\TransInputMethod.exe" 
+              KeyPath="yes" 
+              Checksum="yes" /&gt;
+      &lt;/Component&gt;
+      
+      &lt;Component Id="ConfigFiles" Guid="B2C3D4E5-F6G7-8901-BCDE-F23456789012"&gt;
+        &lt;File Id="MicrosoftDataSqliteDll" 
+              Source="..\bin\Release\net8.0-windows\win-x64\publish\Microsoft.Data.Sqlite.dll" 
+              KeyPath="yes" /&gt;
+        &lt;File Id="NewtonsoftJsonDll" 
+              Source="..\bin\Release\net8.0-windows\win-x64\publish\Newtonsoft.Json.dll" /&gt;
+        &lt;File Id="SqliteCoreDll" 
+              Source="..\bin\Release\net8.0-windows\win-x64\publish\runtimes\win-x64\native\e_sqlite3.dll" /&gt;
+      &lt;/Component&gt;
+      
+      &lt;Component Id="RuntimeFiles" Guid="C3D4E5F6-G7H8-9012-CDEF-345678901234"&gt;
+        &lt;File Id="TransInputMethodDepsJson" 
+              Source="..\bin\Release\net8.0-windows\win-x64\publish\TransInputMethod.deps.json" 
+              KeyPath="yes" /&gt;
+        &lt;File Id="TransInputMethodRuntimeConfigJson" 
+              Source="..\bin\Release\net8.0-windows\win-x64\publish\TransInputMethod.runtimeconfig.json" /&gt;
+        &lt;File Id="TransInputMethodPdb" 
+              Source="..\bin\Release\net8.0-windows\win-x64\publish\TransInputMethod.pdb" /&gt;
+      &lt;/Component&gt;
+    &lt;/ComponentGroup&gt;
+
+    &lt;!-- Desktop and Start Menu Shortcuts --&gt;
+    &lt;Component Id="ApplicationShortcut" Directory="ApplicationProgramsFolder" Guid="D4E5F6G7-H8I9-0123-DEFG-456789012345"&gt;
+      &lt;Shortcut Id="ApplicationStartMenuShortcut"
+                Name="TransInputMethod"
+                Description="悬浮翻译输入法工具"
+                Target="[#TransInputMethodExe]"
+                WorkingDirectory="INSTALLFOLDER" /&gt;
+      &lt;RemoveFolder Id="ApplicationProgramsFolder" On="uninstall" /&gt;
+      &lt;RegistryValue Root="HKCU" 
+                     Key="Software\maxazure\TransInputMethod" 
+                     Name="installed" 
+                     Type="integer" 
+                     Value="1" 
+                     KeyPath="yes" /&gt;
+    &lt;/Component&gt;
+
+    &lt;!-- Startup Shortcut (optional) --&gt;
+    &lt;Component Id="StartupShortcut" Directory="StartupFolder" Guid="E5F6G7H8-I9J0-1234-EFGH-567890123456"&gt;
+      &lt;Condition&gt;STARTUP_SHORTCUT="1"&lt;/Condition&gt;
+      &lt;Shortcut Id="StartupShortcut"
+                Name="TransInputMethod"
+                Description="悬浮翻译输入法工具"
+                Target="[#TransInputMethodExe]"
+                WorkingDirectory="INSTALLFOLDER" /&gt;
+      &lt;RegistryValue Root="HKCU" 
+                     Key="Software\maxazure\TransInputMethod" 
+                     Name="startup" 
+                     Type="integer" 
+                     Value="1" 
+                     KeyPath="yes" /&gt;
+    &lt;/Component&gt;
+  &lt;/Fragment&gt;
+&lt;/Wix&gt;

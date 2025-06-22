@@ -39,6 +39,15 @@ bld/
 # Configuration files with sensitive data
 config.json
 appsettings.json
+config.key
+
+# Build artifacts (安装包相关)
+TransInputMethod-Portable/
+TransInputMethod-v*.zip
+TransInputMethod-*-Setup.exe
+*.wixobj
+checksums.txt
+*.msi
 
 # OS generated files
 .DS_Store
@@ -48,4 +57,3 @@ appsettings.json
 .Trashes
 ehthumbs.db
 Thumbs.db
-config.key

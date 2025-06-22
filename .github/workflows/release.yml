@@ -1,0 +1,242 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # 触发条件：推送版本标签 (如 v0.1.0)
+  release:
+    types: [published]
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Get version from tag
+      id: get_version
+      run: |
+        $version = $env:GITHUB_REF -replace 'refs/tags/v', ''
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        echo "Version: $version"
+      shell: pwsh
+      
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build application
+      run: dotnet build -c Release --no-restore
+      
+    - name: Publish self-contained
+      run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false --output ./publish-selfcontained
+      
+    - name: Publish framework-dependent
+      run: dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=false --output ./publish-framework
+      
+    - name: Create portable package
+      run: |
+        # 创建便携版目录
+        New-Item -ItemType Directory -Path "TransInputMethod-Portable" -Force
+        
+        # 复制自包含版本文件
+        Copy-Item -Path "publish-selfcontained/*" -Destination "TransInputMethod-Portable/" -Recurse -Force
+        
+        # 创建说明文件
+        @"
+        TransInputMethod v${{ steps.get_version.outputs.VERSION }} - Portable Version
+        ==========================================
+        
+        这是 TransInputMethod 的便携版，无需安装即可使用。
+        
+        快速开始：
+        1. 双击运行 TransInputMethod.exe
+        2. 在设置中配置您的 API 密钥
+        3. 使用 Shift+Space 打开翻译窗口
+        4. 使用 Ctrl+Enter 进行翻译或复制
+        
+        系统要求：
+        - Windows 10/11
+        - .NET 8.0 Runtime（已包含在此包中）
+        
+        更多信息：
+        项目地址：https://github.com/maxazure/TransInputMethod
+        
+        Copyright (c) 2024 maxazure
+        Licensed under MIT License
+        "@ | Out-File -FilePath "TransInputMethod-Portable/README.txt" -Encoding UTF8
+        
+        # 创建安装脚本
+        @'
+        @echo off
+        chcp 65001 >nul
+        echo 正在设置 TransInputMethod...
+        echo.
+        
+        set CURRENT_DIR=%~dp0
+        set TARGET_PATH=%CURRENT_DIR%TransInputMethod.exe
+        
+        if not exist "%TARGET_PATH%" (
+            echo 错误：找不到 TransInputMethod.exe
+            pause
+            exit /b 1
+        )
+        
+        echo 创建桌面快捷方式...
+        set DESKTOP=%USERPROFILE%\Desktop
+        powershell -Command "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('%DESKTOP%\TransInputMethod.lnk'); $s.TargetPath = '%TARGET_PATH%'; $s.WorkingDirectory = '%CURRENT_DIR%'; $s.Description = '悬浮翻译输入法工具'; $s.Save()"
+        
+        echo 创建开始菜单快捷方式...
+        set STARTMENU=%APPDATA%\Microsoft\Windows\Start Menu\Programs
+        if not exist "%STARTMENU%\TransInputMethod" mkdir "%STARTMENU%\TransInputMethod"
+        powershell -Command "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('%STARTMENU%\TransInputMethod\TransInputMethod.lnk'); $s.TargetPath = '%TARGET_PATH%'; $s.WorkingDirectory = '%CURRENT_DIR%'; $s.Description = '悬浮翻译输入法工具'; $s.Save()"
+        
+        echo.
+        echo 安装完成！您现在可以通过以下方式运行 TransInputMethod：
+        echo - 桌面快捷方式
+        echo - 开始菜单
+        echo - 或直接运行此文件夹中的 TransInputMethod.exe
+        echo.
+        pause
+        '@ | Out-File -FilePath "TransInputMethod-Portable/Setup.bat" -Encoding UTF8
+        
+        # 创建卸载脚本
+        @'
+        @echo off
+        chcp 65001 >nul
+        echo 正在移除 TransInputMethod 快捷方式...
+        echo.
+        
+        set DESKTOP=%USERPROFILE%\Desktop
+        if exist "%DESKTOP%\TransInputMethod.lnk" (
+            del "%DESKTOP%\TransInputMethod.lnk"
+            echo 已删除桌面快捷方式
+        )
+        
+        set STARTMENU=%APPDATA%\Microsoft\Windows\Start Menu\Programs\TransInputMethod
+        if exist "%STARTMENU%" (
+            rmdir /s /q "%STARTMENU%"
+            echo 已删除开始菜单快捷方式
+        )
+        
+        echo.
+        echo 快捷方式已删除。
+        echo 如需完全删除，请手动删除整个文件夹。
+        pause
+        '@ | Out-File -FilePath "TransInputMethod-Portable/Uninstall.bat" -Encoding UTF8
+      shell: pwsh
+      
+    - name: Create ZIP packages
+      run: |
+        # 便携版 ZIP
+        Compress-Archive -Path "TransInputMethod-Portable/*" -DestinationPath "TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Portable.zip" -Force
+        
+        # 依赖框架版本 ZIP  
+        Compress-Archive -Path "publish-framework/*" -DestinationPath "TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Framework.zip" -Force
+        
+        # 获取文件大小
+        $portableSize = [math]::Round((Get-Item "TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Portable.zip").Length / 1MB, 2)
+        $frameworkSize = [math]::Round((Get-Item "TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Framework.zip").Length / 1MB, 2)
+        
+        echo "PORTABLE_SIZE=$portableSize" >> $env:GITHUB_OUTPUT
+        echo "FRAMEWORK_SIZE=$frameworkSize" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+      id: create_packages
+      
+    - name: Generate checksums
+      run: |
+        # 生成校验和文件
+        Get-FileHash "TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Portable.zip" -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Portable.zip" } | Out-File -FilePath "checksums.txt" -Encoding UTF8
+        Get-FileHash "TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Framework.zip" -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Framework.zip" } | Out-File -FilePath "checksums.txt" -Append -Encoding UTF8
+      shell: pwsh
+      
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: TransInputMethod v${{ steps.get_version.outputs.VERSION }}
+        body: |
+          ## TransInputMethod v${{ steps.get_version.outputs.VERSION }}
+          
+          悬浮翻译输入法工具 - 支持中英文互译的全局悬浮窗口
+          
+          ### 🎯 主要功能
+          - 🚀 全局快捷键 `Shift+Space` 呼出翻译窗口
+          - 🎯 智能中英文互译，自动语言检测
+          - 📋 一键复制 `Ctrl+Enter` 直接复制译文
+          - 🎨 无边框浮动设计，跟随光标位置
+          - 📚 多种翻译场景：IT办公口语、正式书面、IT技术交流
+          - 🗃️ 本地翻译历史记录，支持搜索分页
+          - 🔗 支持多个AI服务商：OpenAI、DeepSeek、Claude等
+          - 🔐 配置信息本地AES加密存储
+          
+          ### 📦 下载选项
+          
+          | 文件 | 大小 | 说明 |
+          |------|------|------|
+          | `TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Portable.zip` | ~${{ steps.create_packages.outputs.PORTABLE_SIZE }}MB | **推荐** - 便携版，包含.NET运行时，解压即用 |
+          | `TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Framework.zip` | ~${{ steps.create_packages.outputs.FRAMEWORK_SIZE }}MB | 依赖框架版本，需要安装.NET 8.0 Runtime |
+          | `checksums.txt` | - | SHA256校验和文件 |
+          
+          ### 🚀 快速开始
+          1. 下载便携版ZIP文件并解压
+          2. 运行 `Setup.bat` 创建快捷方式（可选）
+          3. 运行 `TransInputMethod.exe`
+          4. 在设置中配置API密钥
+          5. 按 `Shift+Space` 开始使用
+          
+          ### 📋 系统要求
+          - Windows 10/11
+          - .NET 8.0 Runtime（便携版已包含）
+          
+          ### 🔧 首次使用
+          请在设置中配置您的API服务商和密钥：
+          - 支持 OpenAI GPT 系列
+          - 支持 DeepSeek
+          - 支持 Claude
+          - 支持其他兼容 OpenAI API 的服务
+          
+          ---
+          
+          **完整更新日志**: [CHANGELOG.md](https://github.com/maxazure/TransInputMethod/blob/main/changelogs/CHANGELOG.md)
+        draft: false
+        prerelease: false
+        
+    - name: Upload Portable Package
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Portable.zip
+        asset_name: TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Portable.zip
+        asset_content_type: application/zip
+        
+    - name: Upload Framework Package
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Framework.zip
+        asset_name: TransInputMethod-v${{ steps.get_version.outputs.VERSION }}-Framework.zip
+        asset_content_type: application/zip
+        
+    - name: Upload Checksums
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./checksums.txt
+        asset_name: checksums.txt
+        asset_content_type: text/plain
