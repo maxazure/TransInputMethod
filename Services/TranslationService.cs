@@ -4,15 +4,50 @@ using TransInputMethod.Models;
 
 namespace TransInputMethod.Services
 {
-    public class TranslationService
+    public class TranslationService : IDisposable
     {
-        private readonly HttpClient _httpClient;
         private readonly ConfigService _configService;
+        private HttpClient? _httpClient;
+        private AppConfig? _lastConfig;
 
         public TranslationService(ConfigService configService)
         {
             _configService = configService;
-            _httpClient = new HttpClient();
+        }
+
+        private void EnsureHttpClient(AppConfig config)
+        {
+            // Check if we need to recreate the HttpClient due to config changes
+            if (_httpClient == null || _lastConfig == null || !ConfigEquals(_lastConfig, config))
+            {
+                _httpClient?.Dispose();
+                _httpClient = new HttpClient();
+                
+                // Set headers and timeout only once when creating the client
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {config.Api.ApiKey}");
+                
+                // Add Organization ID header if provided
+                if (!string.IsNullOrEmpty(config.Api.OrganizationId))
+                {
+                    _httpClient.DefaultRequestHeaders.Add("OpenAI-Organization", config.Api.OrganizationId);
+                }
+                
+                // Add User-Agent header as recommended by OpenAI
+                _httpClient.DefaultRequestHeaders.Add("User-Agent", "TransInputMethod/1.0");
+                
+                _httpClient.Timeout = TimeSpan.FromSeconds(config.Api.Timeout);
+                
+                _lastConfig = config;
+            }
+        }
+
+        private bool ConfigEquals(AppConfig config1, AppConfig config2)
+        {
+            return config1.Api.BaseUrl == config2.Api.BaseUrl &&
+                   config1.Api.ApiKey == config2.Api.ApiKey &&
+                   config1.Api.OrganizationId == config2.Api.OrganizationId &&
+                   config1.Api.Timeout == config2.Api.Timeout;
         }
 
         public async Task<TranslationResult> TranslateAsync(string text, string? scenario = null)
@@ -43,6 +78,9 @@ namespace TransInputMethod.Services
 
             try
             {
+                // Ensure HttpClient is properly configured
+                EnsureHttpClient(config);
+
                 var request = new OpenAIRequest
                 {
                     Model = config.Api.Model,
@@ -66,22 +104,8 @@ namespace TransInputMethod.Services
                 var json = JsonConvert.SerializeObject(request);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                _httpClient.DefaultRequestHeaders.Clear();
-                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {config.Api.ApiKey}");
-                
-                // Add Organization ID header if provided
-                if (!string.IsNullOrEmpty(config.Api.OrganizationId))
-                {
-                    _httpClient.DefaultRequestHeaders.Add("OpenAI-Organization", config.Api.OrganizationId);
-                }
-                
-                // Add User-Agent header as recommended by OpenAI
-                _httpClient.DefaultRequestHeaders.Add("User-Agent", "TransInputMethod/1.0");
-                
-                _httpClient.Timeout = TimeSpan.FromSeconds(config.Api.Timeout);
-
                 var baseUrl = config.Api.BaseUrl.TrimEnd('/');
-                var response = await _httpClient.PostAsync($"{baseUrl}/chat/completions", content);
+                var response = await _httpClient!.PostAsync($"{baseUrl}/chat/completions", content);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -151,6 +175,8 @@ namespace TransInputMethod.Services
         public void Dispose()
         {
             _httpClient?.Dispose();
+            _httpClient = null;
+            _lastConfig = null;
         }
     }
 
