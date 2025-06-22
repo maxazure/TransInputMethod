@@ -44,7 +44,7 @@ namespace TransInputMethod.Services
                 var encryptedContent = await File.ReadAllTextAsync(_configPath);
                 var decryptedContent = DecryptString(encryptedContent);
                 var config = JsonConvert.DeserializeObject<AppConfig>(decryptedContent);
-                return config ?? CreateDefaultConfig();
+                return config != null ? MigrateConfigIfNeeded(config) : CreateDefaultConfig();
             }
             catch
             {
@@ -55,6 +55,7 @@ namespace TransInputMethod.Services
                     var config = JsonConvert.DeserializeObject<AppConfig>(content);
                     if (config != null)
                     {
+                        config = MigrateConfigIfNeeded(config);
                         // Re-save with encryption
                         await SaveConfigToFileAsync(config);
                         return config;
@@ -95,10 +96,92 @@ namespace TransInputMethod.Services
                 }
             };
 
+            var defaultProviders = CreateDefaultProviders();
+
             return new AppConfig
             {
-                Scenarios = defaultScenarios
+                Scenarios = defaultScenarios,
+                ApiProviders = defaultProviders,
+                CurrentProviderId = "openai"
             };
+        }
+
+        private List<ApiProvider> CreateDefaultProviders()
+        {
+            return new List<ApiProvider>
+            {
+                new ApiProvider
+                {
+                    Id = "openai",
+                    Name = "OpenAI",
+                    BaseUrl = "https://api.openai.com/v1",
+                    Model = "gpt-4o-mini",
+                    AvailableModels = new List<string> { "gpt-4o", "gpt-4o-mini", "gpt-4", "gpt-4-turbo", "gpt-3.5-turbo" },
+                    RequiresOrganizationId = false,
+                    IsCustom = false
+                },
+                new ApiProvider
+                {
+                    Id = "deepseek",
+                    Name = "DeepSeek",
+                    BaseUrl = "https://api.deepseek.com/v1",
+                    Model = "deepseek-chat",
+                    AvailableModels = new List<string> { "deepseek-chat", "deepseek-coder" },
+                    RequiresOrganizationId = false,
+                    IsCustom = false
+                },
+                new ApiProvider
+                {
+                    Id = "qwen",
+                    Name = "Qwen",
+                    BaseUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                    Model = "qwen-turbo",
+                    AvailableModels = new List<string> { "qwen-turbo", "qwen-plus", "qwen-max", "qwen-max-longcontext" },
+                    RequiresOrganizationId = false,
+                    IsCustom = false
+                }
+            };
+        }
+
+        private AppConfig MigrateConfigIfNeeded(AppConfig config)
+        {
+            // If no providers exist, migrate from old API settings or create defaults
+            if (config.ApiProviders == null || !config.ApiProviders.Any())
+            {
+                config.ApiProviders = CreateDefaultProviders();
+                
+                // If old API settings exist, migrate them to current provider
+                if (!string.IsNullOrEmpty(config.Api?.ApiKey))
+                {
+                    var currentProvider = config.ApiProviders.FirstOrDefault(p => p.Id == config.CurrentProviderId) 
+                                        ?? config.ApiProviders.First();
+                    
+                    currentProvider.ApiKey = config.Api.ApiKey;
+                    currentProvider.OrganizationId = config.Api.OrganizationId ?? string.Empty;
+                    currentProvider.Model = config.Api.Model ?? currentProvider.Model;
+                    currentProvider.Timeout = config.Api.Timeout;
+                    currentProvider.BaseUrl = config.Api.BaseUrl ?? currentProvider.BaseUrl;
+                }
+            }
+
+            // Ensure current provider ID is valid
+            if (string.IsNullOrEmpty(config.CurrentProviderId) || 
+                !config.ApiProviders.Any(p => p.Id == config.CurrentProviderId))
+            {
+                config.CurrentProviderId = config.ApiProviders.First().Id;
+            }
+
+            // Ensure default providers exist (add any missing ones)
+            var defaultProviders = CreateDefaultProviders();
+            foreach (var defaultProvider in defaultProviders)
+            {
+                if (!config.ApiProviders.Any(p => p.Id == defaultProvider.Id))
+                {
+                    config.ApiProviders.Add(defaultProvider);
+                }
+            }
+
+            return config;
         }
 
         private string EncryptString(string plainText)

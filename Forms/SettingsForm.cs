@@ -19,12 +19,14 @@ namespace TransInputMethod.Forms
         private TabPage _uiTabPage;
 
         // API settings controls
+        private ComboBox _providerComboBox;
         private TextBox _baseUrlTextBox;
         private TextBox _apiKeyTextBox;
         private CheckBox _showApiKeyCheckBox;
         private TextBox _organizationIdTextBox;
         private ComboBox _modelComboBox;
         private NumericUpDown _timeoutNumericUpDown;
+        private Button _addProviderButton;
 
         // Hotkey settings controls
         private HotkeyTextBox _showWindowHotkeyTextBox;
@@ -107,6 +109,34 @@ namespace TransInputMethod.Forms
         private void CreateApiTab()
         {
             var y = 20;
+
+            // API Provider
+            var providerLabel = new Label
+            {
+                Text = "服务商:",
+                Location = new Point(20, y),
+                Size = new Size(100, 23),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+            
+            _providerComboBox = new ComboBox
+            {
+                Location = new Point(130, y),
+                Size = new Size(350, 23),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            _providerComboBox.SelectedIndexChanged += ProviderComboBox_SelectedIndexChanged;
+            
+            _addProviderButton = new Button
+            {
+                Text = "添加自定义",
+                Location = new Point(490, y),
+                Size = new Size(90, 23),
+                FlatStyle = FlatStyle.System
+            };
+            _addProviderButton.Click += AddProviderButton_Click;
+            
+            y += 35;
 
             // Base URL
             var baseUrlLabel = new Label
@@ -212,6 +242,7 @@ namespace TransInputMethod.Forms
 
             _apiTabPage.Controls.AddRange(new Control[] 
             { 
+                providerLabel, _providerComboBox, _addProviderButton,
                 baseUrlLabel, _baseUrlTextBox, 
                 apiKeyLabel, _apiKeyTextBox, _showApiKeyCheckBox,
                 organizationIdLabel, _organizationIdTextBox,
@@ -513,12 +544,16 @@ namespace TransInputMethod.Forms
             {
                 _config = await _configService.GetConfigAsync();
                 
-                // Load API settings
-                _baseUrlTextBox.Text = _config.Api.BaseUrl;
-                _apiKeyTextBox.Text = _config.Api.ApiKey;
-                _organizationIdTextBox.Text = _config.Api.OrganizationId;
-                _modelComboBox.Text = _config.Api.Model;
-                _timeoutNumericUpDown.Value = _config.Api.Timeout;
+                // Load API providers
+                LoadProviders();
+                
+                // Load current provider settings
+                var currentProvider = _config.ApiProviders.FirstOrDefault(p => p.Id == _config.CurrentProviderId);
+                if (currentProvider != null)
+                {
+                    _providerComboBox.SelectedItem = currentProvider;
+                    LoadProviderSettings(currentProvider);
+                }
 
                 // Load hotkey settings
                 LoadHotkeySettings();
@@ -536,6 +571,29 @@ namespace TransInputMethod.Forms
             catch (Exception ex)
             {
                 MessageBox.Show($"加载配置失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void LoadProviders()
+        {
+            _providerComboBox.Items.Clear();
+            _providerComboBox.DisplayMember = "Name";
+            foreach (var provider in _config.ApiProviders)
+            {
+                _providerComboBox.Items.Add(provider);
+            }
+            
+            if (_providerComboBox.Items.Count > 0)
+            {
+                var currentProvider = _config.ApiProviders.FirstOrDefault(p => p.Id == _config.CurrentProviderId);
+                if (currentProvider != null)
+                {
+                    _providerComboBox.SelectedItem = currentProvider;
+                }
+                else
+                {
+                    _providerComboBox.SelectedIndex = 0;
+                }
             }
         }
 
@@ -597,6 +655,39 @@ namespace TransInputMethod.Forms
         private void OpacityTrackBar_ValueChanged(object? sender, EventArgs e)
         {
             _opacityValueLabel.Text = $"{_opacityTrackBar.Value}%";
+        }
+
+        private void ProviderComboBox_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (_providerComboBox.SelectedItem is ApiProvider selectedProvider)
+            {
+                LoadProviderSettings(selectedProvider);
+            }
+        }
+
+        private void AddProviderButton_Click(object? sender, EventArgs e)
+        {
+            // TODO: Implement custom provider dialog
+            MessageBox.Show("自定义服务商功能即将推出", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void LoadProviderSettings(ApiProvider provider)
+        {
+            _baseUrlTextBox.Text = provider.BaseUrl;
+            _apiKeyTextBox.Text = provider.ApiKey;
+            _organizationIdTextBox.Text = provider.OrganizationId;
+            _timeoutNumericUpDown.Value = provider.Timeout;
+
+            // Update model combo box
+            _modelComboBox.Items.Clear();
+            foreach (var model in provider.AvailableModels)
+            {
+                _modelComboBox.Items.Add(model);
+            }
+            _modelComboBox.Text = provider.Model;
+
+            // Show/hide Organization ID based on provider requirements
+            _organizationIdTextBox.Visible = provider.RequiresOrganizationId || !string.IsNullOrEmpty(provider.OrganizationId);
         }
 
         private void ScenarioListBox_SelectedIndexChanged(object? sender, EventArgs e)
@@ -733,12 +824,27 @@ namespace TransInputMethod.Forms
                     return;
                 }
 
-                // Update configuration
-                _config.Api.BaseUrl = _baseUrlTextBox.Text.Trim();
-                _config.Api.ApiKey = _apiKeyTextBox.Text.Trim();
-                _config.Api.OrganizationId = _organizationIdTextBox.Text.Trim();
-                _config.Api.Model = _modelComboBox.Text;
-                _config.Api.Timeout = (int)_timeoutNumericUpDown.Value;
+                // Update current provider configuration
+                if (_providerComboBox.SelectedItem is ApiProvider selectedProvider)
+                {
+                    selectedProvider.BaseUrl = _baseUrlTextBox.Text.Trim();
+                    selectedProvider.ApiKey = _apiKeyTextBox.Text.Trim();
+                    selectedProvider.OrganizationId = _organizationIdTextBox.Text.Trim();
+                    selectedProvider.Model = _modelComboBox.Text;
+                    selectedProvider.Timeout = (int)_timeoutNumericUpDown.Value;
+                    
+                    _config.CurrentProviderId = selectedProvider.Id;
+                }
+
+                // Update legacy API settings for compatibility
+                if (_providerComboBox.SelectedItem is ApiProvider currentProvider)
+                {
+                    _config.Api.BaseUrl = currentProvider.BaseUrl;
+                    _config.Api.ApiKey = currentProvider.ApiKey;
+                    _config.Api.OrganizationId = currentProvider.OrganizationId;
+                    _config.Api.Model = currentProvider.Model;
+                    _config.Api.Timeout = currentProvider.Timeout;
+                }
 
                 // Update hotkey settings
                 var (showModifiers, showKey) = _showWindowHotkeyTextBox.GetHotkey();
@@ -777,7 +883,7 @@ namespace TransInputMethod.Forms
                 _testConnectionButton.Enabled = false;
                 _testConnectionButton.Text = "测试中...";
 
-                // Create a temporary config for testing with default scenarios
+                // Create a temporary config for testing with current provider settings
                 var testConfig = new AppConfig();
                 testConfig.Api.BaseUrl = _baseUrlTextBox.Text.Trim();
                 testConfig.Api.ApiKey = _apiKeyTextBox.Text.Trim();

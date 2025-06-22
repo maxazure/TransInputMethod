@@ -17,6 +17,9 @@ namespace TransInputMethod.Services
 
         private void EnsureHttpClient(AppConfig config)
         {
+            // Get current provider
+            var currentProvider = GetCurrentProvider(config);
+            
             // Check if we need to recreate the HttpClient due to config changes
             if (_httpClient == null || _lastConfig == null || !ConfigEquals(_lastConfig, config))
             {
@@ -25,36 +28,61 @@ namespace TransInputMethod.Services
                 
                 // Set headers and timeout only once when creating the client
                 _httpClient.DefaultRequestHeaders.Clear();
-                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {config.Api.ApiKey}");
+                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {currentProvider.ApiKey}");
                 
                 // Add Organization ID header if provided
-                if (!string.IsNullOrEmpty(config.Api.OrganizationId))
+                if (!string.IsNullOrEmpty(currentProvider.OrganizationId))
                 {
-                    _httpClient.DefaultRequestHeaders.Add("OpenAI-Organization", config.Api.OrganizationId);
+                    _httpClient.DefaultRequestHeaders.Add("OpenAI-Organization", currentProvider.OrganizationId);
                 }
                 
                 // Add User-Agent header as recommended by OpenAI
                 _httpClient.DefaultRequestHeaders.Add("User-Agent", "TransInputMethod/1.0");
                 
-                _httpClient.Timeout = TimeSpan.FromSeconds(config.Api.Timeout);
+                _httpClient.Timeout = TimeSpan.FromSeconds(currentProvider.Timeout);
                 
                 _lastConfig = config;
             }
         }
 
+        private ApiProvider GetCurrentProvider(AppConfig config)
+        {
+            var provider = config.ApiProviders?.FirstOrDefault(p => p.Id == config.CurrentProviderId);
+            if (provider != null)
+            {
+                return provider;
+            }
+
+            // Fallback to legacy API settings
+            return new ApiProvider
+            {
+                Id = "legacy",
+                Name = "Legacy",
+                BaseUrl = config.Api.BaseUrl,
+                ApiKey = config.Api.ApiKey,
+                OrganizationId = config.Api.OrganizationId,
+                Model = config.Api.Model,
+                Timeout = config.Api.Timeout
+            };
+        }
+
         private bool ConfigEquals(AppConfig config1, AppConfig config2)
         {
-            return config1.Api.BaseUrl == config2.Api.BaseUrl &&
-                   config1.Api.ApiKey == config2.Api.ApiKey &&
-                   config1.Api.OrganizationId == config2.Api.OrganizationId &&
-                   config1.Api.Timeout == config2.Api.Timeout;
+            var provider1 = GetCurrentProvider(config1);
+            var provider2 = GetCurrentProvider(config2);
+            
+            return provider1.BaseUrl == provider2.BaseUrl &&
+                   provider1.ApiKey == provider2.ApiKey &&
+                   provider1.OrganizationId == provider2.OrganizationId &&
+                   provider1.Timeout == provider2.Timeout;
         }
 
         public async Task<TranslationResult> TranslateAsync(string text, string? scenario = null)
         {
             var config = await _configService.GetConfigAsync();
+            var currentProvider = GetCurrentProvider(config);
             
-            if (string.IsNullOrEmpty(config.Api.ApiKey))
+            if (string.IsNullOrEmpty(currentProvider.ApiKey))
             {
                 return new TranslationResult
                 {
@@ -83,7 +111,7 @@ namespace TransInputMethod.Services
 
                 var request = new OpenAIRequest
                 {
-                    Model = config.Api.Model,
+                    Model = currentProvider.Model,
                     Messages = new List<OpenAIMessage>
                     {
                         new OpenAIMessage
@@ -104,7 +132,7 @@ namespace TransInputMethod.Services
                 var json = JsonConvert.SerializeObject(request);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var baseUrl = config.Api.BaseUrl.TrimEnd('/');
+                var baseUrl = currentProvider.BaseUrl.TrimEnd('/');
                 var response = await _httpClient!.PostAsync($"{baseUrl}/chat/completions", content);
 
                 if (!response.IsSuccessStatusCode)

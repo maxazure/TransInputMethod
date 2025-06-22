@@ -6,6 +6,8 @@ namespace TransInputMethod.Models
     {
         public HotkeySettings Hotkeys { get; set; } = new HotkeySettings();
         public ApiSettings Api { get; set; } = new ApiSettings();
+        public List<ApiProvider> ApiProviders { get; set; } = new List<ApiProvider>();
+        public string CurrentProviderId { get; set; } = "openai";
         public List<TranslationScenario> Scenarios { get; set; } = new List<TranslationScenario>();
         public UiSettings Ui { get; set; } = new UiSettings();
     }
@@ -23,6 +25,20 @@ namespace TransInputMethod.Models
         public string OrganizationId { get; set; } = string.Empty;
         public string Model { get; set; } = "gpt-4o-mini";
         public int Timeout { get; set; } = 30; // seconds
+    }
+
+    public class ApiProvider
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string BaseUrl { get; set; } = string.Empty;
+        public string ApiKey { get; set; } = string.Empty;
+        public string OrganizationId { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
+        public int Timeout { get; set; } = 30;
+        public List<string> AvailableModels { get; set; } = new List<string>();
+        public bool RequiresOrganizationId { get; set; } = false;
+        public bool IsCustom { get; set; } = false;
     }
 
     public class TranslationScenario
