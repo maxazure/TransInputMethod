@@ -79,16 +79,16 @@ namespace TransInputMethod.Forms
         private TextBox _mainTextBox = null!;
         private Panel _controlPanel = null!;
         private Button _historyButton = null!;
-        private Button _previousButton = null!;
-        private Button _nextButton = null!;
         private ComboBox _scenarioComboBox = null!;
         private ProgressBar _loadingBar = null!;
         private Label _statusLabel = null!;
+        private Button _translateButton = null!;
+        private Button _settingsButton = null!;
+        private Label _languageDetectionLabel = null!;
 
         private string _lastTranslatedText = string.Empty;
         private string _currentInputText = string.Empty;
-        private List<TranslationHistory> _currentHistory = new List<TranslationHistory>();
-        private int _historyIndex = -1;
+        // Removed history navigation - now using separate history window only
         private bool _isTranslating = false;
         private bool _hasTranslated = false; // Track if we have translated once
 
@@ -117,7 +117,7 @@ namespace TransInputMethod.Forms
             this.MinimumSize = new Size(600, 132);
             this.MaximumSize = new Size(600, 600);
 
-            // Main text box
+            // Main text box with improved placeholder
             _mainTextBox = new TextBox
             {
                 Multiline = true,
@@ -126,117 +126,138 @@ namespace TransInputMethod.Forms
                 BorderStyle = BorderStyle.None,
                 Dock = DockStyle.Fill,
                 BackColor = Color.White,
-                ForeColor = Color.FromArgb(29, 41, 57),
+                ForeColor = Color.FromArgb(55, 65, 81), // Improved contrast #374151
                 Margin = new Padding(24, 20, 24, 12),
-                WordWrap = true
+                WordWrap = true,
+                PlaceholderText = "输入/粘贴内容…（Ctrl+Enter 快捷翻译）"
             };
             _mainTextBox.TextChanged += MainTextBox_TextChanged;
             _mainTextBox.KeyDown += MainTextBox_KeyDown;
             _mainTextBox.MouseEnter += (s, e) => _mainTextBox.Cursor = Cursors.IBeam;
             _mainTextBox.MouseDown += TextBox_MouseDown;
 
-            // Control panel
+            // Control panel with improved spacing and divider
             _controlPanel = new Panel
             {
-                Height = 52,
+                Height = 60,
                 Dock = DockStyle.Bottom,
                 BackColor = Color.FromArgb(248, 249, 250),
-                Padding = new Padding(20, 12, 20, 12)
+                Padding = new Padding(12)
+            };
+            
+            // Add top border as divider
+            _controlPanel.Paint += (s, e) => {
+                using var pen = new Pen(Color.FromArgb(229, 231, 235), 1);
+                e.Graphics.DrawLine(pen, 0, 0, _controlPanel.Width, 0);
             };
 
-            // History button
+            // History button (small, left corner)
             _historyButton = new Button
             {
                 Text = "📋",
-                Size = new Size(36, 28),
-                Location = new Point(20, 2),
+                Size = new Size(32, 32),
+                Location = new Point(12, 16),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(248, 249, 250),
-                Font = new Font("Segoe UI Emoji", 12F),
+                Font = new Font("Segoe UI", 12F),
                 Cursor = Cursors.Hand,
-                ForeColor = Color.FromArgb(107, 114, 128)
+                ForeColor = Color.FromArgb(75, 85, 99),
+                TextAlign = ContentAlignment.MiddleCenter
             };
             _historyButton.FlatAppearance.BorderSize = 0;
             _historyButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(229, 231, 235);
             _historyButton.Click += HistoryButton_Click;
-
-            // Previous button
-            _previousButton = new Button
+            
+            // Settings button (small, next to history)
+            _settingsButton = new Button
             {
-                Text = "↑",
-                Size = new Size(28, 28),
-                Location = new Point(64, 2),
+                Text = "⚙",
+                Size = new Size(32, 32),
+                Location = new Point(52, 16),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(248, 249, 250),
-                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+                Font = new Font("Segoe UI", 12F),
                 Cursor = Cursors.Hand,
-                Enabled = false,
-                ForeColor = Color.FromArgb(107, 114, 128)
+                ForeColor = Color.FromArgb(75, 85, 99),
+                TextAlign = ContentAlignment.MiddleCenter
             };
-            _previousButton.FlatAppearance.BorderSize = 0;
-            _previousButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(229, 231, 235);
-            _previousButton.Click += PreviousButton_Click;
-
-            // Next button
-            _nextButton = new Button
+            _settingsButton.FlatAppearance.BorderSize = 0;
+            _settingsButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(229, 231, 235);
+            _settingsButton.Click += SettingsButton_Click;
+            
+            // Main translate button (right side)
+            _translateButton = new Button
             {
-                Text = "↓",
-                Size = new Size(28, 28),
-                Location = new Point(100, 2),
+                Text = "翻译",
+                Size = new Size(80, 36),
+                Location = new Point(508, 12),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(248, 249, 250),
-                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+                BackColor = Color.FromArgb(59, 130, 246),
+                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 Cursor = Cursors.Hand,
-                Enabled = false,
-                ForeColor = Color.FromArgb(107, 114, 128)
+                ForeColor = Color.White
             };
-            _nextButton.FlatAppearance.BorderSize = 0;
-            _nextButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(229, 231, 235);
-            _nextButton.Click += NextButton_Click;
+            _translateButton.FlatAppearance.BorderSize = 0;
+            _translateButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(37, 99, 235);
+            _translateButton.Click += TranslateButton_Click;
 
-            // Scenario combo box
+            // Removed previous and next buttons - using separate history window instead
+
+            // Scenario combo box (center-right)
             _scenarioComboBox = new ComboBox
             {
-                Size = new Size(96, 28),
-                Location = new Point(484, 12),
+                Size = new Size(100, 28),
+                Location = new Point(400, 16),
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Font = new Font("Segoe UI", 10F),
+                Font = new Font("Segoe UI", 9F),
                 ForeColor = Color.FromArgb(55, 65, 81),
-                BackColor = Color.FromArgb(248, 249, 250),
+                BackColor = Color.White,
                 Cursor = Cursors.Default
             };
             _scenarioComboBox.SelectedIndexChanged += ScenarioComboBox_SelectedIndexChanged;
 
-            // Loading bar
+            // Loading bar (center area, shows during translation)
             _loadingBar = new ProgressBar
             {
-                Size = new Size(320, 3),
-                Location = new Point(136, 14),
+                Size = new Size(200, 3),
+                Location = new Point(200, 30),
                 Style = ProgressBarStyle.Marquee,
                 MarqueeAnimationSpeed = 30,
                 Visible = false,
                 Cursor = Cursors.Default,
                 ForeColor = Color.FromArgb(59, 130, 246)
-                
             };
 
-            // Status label
+            // Status label (center area)
             _statusLabel = new Label
             {
-                Size = new Size(320, 28),
-                Location = new Point(136, 2),
-                Font = new Font("Segoe UI", 10F),
+                Size = new Size(200, 20),
+                Location = new Point(200, 16),
+                Font = new Font("Segoe UI", 9F),
                 ForeColor = Color.FromArgb(107, 114, 128),
                 TextAlign = ContentAlignment.MiddleLeft,
                 Cursor = Cursors.Default,
-                Text = "输入文本后按 Ctrl+Enter 翻译"
+                Text = ""
+            };
+            
+            // Language detection label (shows after translation, top-right)
+            _languageDetectionLabel = new Label
+            {
+                Size = new Size(180, 20),
+                Location = new Point(408, 52),
+                Font = new Font("Segoe UI", 8F),
+                ForeColor = Color.FromArgb(107, 114, 128),
+                TextAlign = ContentAlignment.TopRight,
+                Cursor = Cursors.Default,
+                Text = "",
+                Visible = false
             };
 
-            // Add controls
+            // Add controls to control panel
             _controlPanel.Controls.AddRange(new Control[] 
             { 
-                _historyButton, _previousButton, _nextButton, 
-                _scenarioComboBox, _loadingBar, _statusLabel 
+                _historyButton, _settingsButton, _statusLabel, _loadingBar, 
+                _scenarioComboBox, _translateButton
             });
 
 
@@ -265,6 +286,7 @@ namespace TransInputMethod.Forms
                 Padding = new Padding(24, 20, 24, 16)
             };
             textContainer.Controls.Add(_mainTextBox);
+            textContainer.Controls.Add(_languageDetectionLabel);
             
             // Update control panel dock
             _controlPanel.Dock = DockStyle.Bottom;
@@ -387,11 +409,9 @@ namespace TransInputMethod.Forms
             _currentInputText = _mainTextBox.Text;
             AdjustFormHeight();
             
-            if (string.IsNullOrWhiteSpace(_currentInputText))
-            {
-                _statusLabel.Text = "输入文本后按 Ctrl+Enter 翻译";
-                _statusLabel.ForeColor = Color.FromArgb(107, 114, 128);
-            }
+            // Clear language detection when text changes
+            _languageDetectionLabel.Visible = false;
+            _languageDetectionLabel.Text = "";
         }
 
         private void AdjustFormHeight()
@@ -448,7 +468,7 @@ namespace TransInputMethod.Forms
                     if (lastTranslation != null)
                     {
                         Clipboard.SetText(lastTranslation.TranslatedText);
-                        _statusLabel.Text = "译文已复制到剪贴板，再次按 Ctrl+Enter 粘贴";
+                        _statusLabel.Text = "译文已复制";
                         _statusLabel.ForeColor = Color.FromArgb(34, 197, 94);
                         _lastTranslatedText = lastTranslation.TranslatedText;
                         _hasTranslated = true;
@@ -495,22 +515,31 @@ namespace TransInputMethod.Forms
                     };
 
                     await _dbContext.AddTranslationAsync(history);
-                    _statusLabel.Text = "翻译完成，再次按 Ctrl+Enter 粘贴到光标处";
+                    _statusLabel.Text = "翻译完成";
                     _statusLabel.ForeColor = Color.FromArgb(34, 197, 94);
+                    
+                    // Show language detection result and flash success
+                    ShowLanguageDetection(result.SourceLanguage, result.TargetLanguage);
+                    FlashButtonSuccess();
 
-                    // Refresh history navigation
-                    await RefreshHistoryNavigation();
+                    // History is now managed in separate window
                 }
                 else
                 {
                     _statusLabel.Text = result.ErrorMessage ?? "翻译失败";
                     _statusLabel.ForeColor = Color.FromArgb(239, 68, 68);
+                    
+                    // Flash red border on translate button for error feedback
+                    FlashButtonError();
                 }
             }
             catch (Exception ex)
             {
                 _statusLabel.Text = $"翻译出错: {ex.Message}";
                 _statusLabel.ForeColor = Color.FromArgb(239, 68, 68);
+                
+                // Flash red border on translate button for error feedback
+                FlashButtonError();
             }
             finally
             {
@@ -522,6 +551,8 @@ namespace TransInputMethod.Forms
         private void ShowLoadingState()
         {
             _loadingBar.Visible = true;
+            _translateButton.Text = "翻译中...";
+            _translateButton.Enabled = false;
             _statusLabel.Text = "正在翻译...";
             _statusLabel.ForeColor = Color.FromArgb(59, 130, 246);
         }
@@ -529,64 +560,66 @@ namespace TransInputMethod.Forms
         private void HideLoadingState()
         {
             _loadingBar.Visible = false;
+            _translateButton.Text = "翻译";
+            _translateButton.Enabled = true;
         }
-
-        private async Task RefreshHistoryNavigation()
+        
+        private void ShowLanguageDetection(string? sourceLanguage, string? targetLanguage)
+        {
+            if (!string.IsNullOrEmpty(sourceLanguage) && !string.IsNullOrEmpty(targetLanguage))
+            {
+                var sourceLang = sourceLanguage == "Chinese" ? "中文" : "英文";
+                var targetLang = targetLanguage == "Chinese" ? "中文" : "英文";
+                _languageDetectionLabel.Text = $"检测到：{sourceLang} → {targetLang}";
+                _languageDetectionLabel.Visible = true;
+            }
+        }
+        
+        private async void FlashButtonSuccess()
+        {
+            var originalColor = _translateButton.BackColor;
+            _translateButton.BackColor = Color.FromArgb(34, 197, 94); // Green success
+            await Task.Delay(300);
+            _translateButton.BackColor = originalColor;
+        }
+        
+        private async void FlashButtonError()
+        {
+            var originalBorderColor = _translateButton.FlatAppearance.BorderColor;
+            _translateButton.FlatAppearance.BorderSize = 2;
+            _translateButton.FlatAppearance.BorderColor = Color.FromArgb(239, 68, 68); // Red error
+            await Task.Delay(300);
+            _translateButton.FlatAppearance.BorderSize = 0;
+            _translateButton.FlatAppearance.BorderColor = originalBorderColor;
+        }
+        
+        private async void TranslateButton_Click(object? sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(_currentInputText))
+                return;
+                
+            await TranslateCurrentText();
+        }
+        
+        private void SettingsButton_Click(object? sender, EventArgs e)
         {
             try
             {
-                var historyResult = await _dbContext.GetTranslationHistoryAsync(1, 20);
-                _currentHistory = historyResult.Data;
-                _historyIndex = -1;
+                var settingsForm = new SettingsForm(_configService);
+                settingsForm.ShowDialog();
                 
-                _previousButton.Enabled = _currentHistory.Count > 0;
-                _nextButton.Enabled = false;
+                // Reload configuration after settings are saved
+                _ = LoadConfiguration();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"刷新历史导航失败: {ex.Message}");
+                MessageBox.Show($"\u6253\u5f00\u8bbe\u7f6e\u5931\u8d25: {ex.Message}", "\u9519\u8bef", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void PreviousButton_Click(object? sender, EventArgs e)
-        {
-            if (_currentHistory.Count == 0)
-                return;
+        // Removed RefreshHistoryNavigation - using separate history window instead
 
-            _historyIndex++;
-            if (_historyIndex >= _currentHistory.Count)
-                _historyIndex = _currentHistory.Count - 1;
-
-            LoadHistoryItem();
-            UpdateNavigationButtons();
-        }
-
-        private void NextButton_Click(object? sender, EventArgs e)
-        {
-            if (_historyIndex <= 0)
-                return;
-
-            _historyIndex--;
-            LoadHistoryItem();
-            UpdateNavigationButtons();
-        }
-
-        private void LoadHistoryItem()
-        {
-            if (_historyIndex >= 0 && _historyIndex < _currentHistory.Count)
-            {
-                var item = _currentHistory[_historyIndex];
-                _mainTextBox.Text = $"{item.SourceText}\n---\n{item.TranslatedText}";
-                _statusLabel.Text = $"历史记录 ({item.Timestamp:MM-dd HH:mm})";
-                _statusLabel.ForeColor = Color.FromArgb(107, 114, 128);
-            }
-        }
-
-        private void UpdateNavigationButtons()
-        {
-            _previousButton.Enabled = _historyIndex < _currentHistory.Count - 1;
-            _nextButton.Enabled = _historyIndex > 0;
-        }
+        // Removed navigation button methods - using separate history window instead
 
         private void HistoryButton_Click(object? sender, EventArgs e)
         {
@@ -798,10 +831,12 @@ namespace TransInputMethod.Forms
             if (!_isTranslating)
             {
                 _mainTextBox.Clear();
-                _statusLabel.Text = "输入文本后按 Ctrl+Enter 翻译";
+                _statusLabel.Text = "";
                 _statusLabel.ForeColor = Color.FromArgb(107, 114, 128);
                 _hasTranslated = false;
                 _lastTranslatedText = string.Empty;
+                _languageDetectionLabel.Visible = false;
+                _languageDetectionLabel.Text = "";
             }
         }
 
