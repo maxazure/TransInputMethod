@@ -14,6 +14,11 @@ namespace TransInputMethod.Forms
         private static extern IntPtr GetForegroundWindow();
 
         [DllImport("user32.dll")]
+        static extern bool SetForegroundWindow(IntPtr hWnd);
+[DllImport("user32.dll")]
+        private static extern IntPtr SetFocus(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
 
         [DllImport("user32.dll")]
@@ -33,6 +38,35 @@ namespace TransInputMethod.Forms
 
         [DllImport("user32.dll")]
         private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetGUIThreadInfo(uint idThread, ref GUITHREADINFO lpgui);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetCursorPos(out Point lpPoint);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct GUITHREADINFO
+        {
+            public uint cbSize;
+            public uint flags;
+            public IntPtr hwndActive;
+            public IntPtr hwndFocus;
+            public IntPtr hwndCapture;
+            public IntPtr hwndMenuOwner;
+            public IntPtr hwndMoveSize;
+            public IntPtr hwndCaret;
+            public RECT rcCaret;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int left;
+            public int top;
+            public int right;
+            public int bottom;
+        }
 
         private const int KEYEVENTF_KEYUP = 0x02;
         private const int VK_CONTROL = 0x11;
@@ -78,106 +112,123 @@ namespace TransInputMethod.Forms
             this.TopMost = true;
             this.ShowInTaskbar = false;
             this.StartPosition = FormStartPosition.Manual;
-            this.BackColor = Color.White;
-            this.Size = new Size(600, 120);
-            this.MinimumSize = new Size(600, 120);
+            this.BackColor = Color.FromArgb(240, 240, 240);
+            this.Size = new Size(600, 132);
+            this.MinimumSize = new Size(600, 132);
             this.MaximumSize = new Size(600, 600);
 
             // Main text box
             _mainTextBox = new TextBox
             {
                 Multiline = true,
-                ScrollBars = ScrollBars.Vertical,
-                Font = new Font("Microsoft YaHei UI", 11F),
+                ScrollBars = ScrollBars.None,
+                Font = new Font("Segoe UI", 15F, FontStyle.Regular),
                 BorderStyle = BorderStyle.None,
                 Dock = DockStyle.Fill,
                 BackColor = Color.White,
-                ForeColor = Color.Black,
-                Margin = new Padding(10)
+                ForeColor = Color.FromArgb(29, 41, 57),
+                Margin = new Padding(24, 20, 24, 12),
+                WordWrap = true
             };
             _mainTextBox.TextChanged += MainTextBox_TextChanged;
             _mainTextBox.KeyDown += MainTextBox_KeyDown;
+            _mainTextBox.MouseEnter += (s, e) => _mainTextBox.Cursor = Cursors.IBeam;
+            _mainTextBox.MouseDown += TextBox_MouseDown;
 
             // Control panel
             _controlPanel = new Panel
             {
-                Height = 35,
+                Height = 52,
                 Dock = DockStyle.Bottom,
-                BackColor = Color.FromArgb(248, 249, 250)
+                BackColor = Color.FromArgb(248, 249, 250),
+                Padding = new Padding(20, 12, 20, 12)
             };
 
             // History button
             _historyButton = new Button
             {
-                Text = "⌚",
-                Size = new Size(30, 25),
-                Location = new Point(10, 5),
+                Text = "📋",
+                Size = new Size(36, 28),
+                Location = new Point(20, 2),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.Transparent,
+                BackColor = Color.FromArgb(248, 249, 250),
                 Font = new Font("Segoe UI Emoji", 12F),
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                ForeColor = Color.FromArgb(107, 114, 128)
             };
             _historyButton.FlatAppearance.BorderSize = 0;
+            _historyButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(229, 231, 235);
             _historyButton.Click += HistoryButton_Click;
 
             // Previous button
             _previousButton = new Button
             {
                 Text = "↑",
-                Size = new Size(25, 25),
-                Location = new Point(50, 5),
+                Size = new Size(28, 28),
+                Location = new Point(64, 2),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.Transparent,
-                Font = new Font("Microsoft YaHei UI", 12F),
+                BackColor = Color.FromArgb(248, 249, 250),
+                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
                 Cursor = Cursors.Hand,
-                Enabled = false
+                Enabled = false,
+                ForeColor = Color.FromArgb(107, 114, 128)
             };
             _previousButton.FlatAppearance.BorderSize = 0;
+            _previousButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(229, 231, 235);
             _previousButton.Click += PreviousButton_Click;
 
             // Next button
             _nextButton = new Button
             {
                 Text = "↓",
-                Size = new Size(25, 25),
-                Location = new Point(80, 5),
+                Size = new Size(28, 28),
+                Location = new Point(100, 2),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.Transparent,
-                Font = new Font("Microsoft YaHei UI", 12F),
+                BackColor = Color.FromArgb(248, 249, 250),
+                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
                 Cursor = Cursors.Hand,
-                Enabled = false
+                Enabled = false,
+                ForeColor = Color.FromArgb(107, 114, 128)
             };
             _nextButton.FlatAppearance.BorderSize = 0;
+            _nextButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(229, 231, 235);
             _nextButton.Click += NextButton_Click;
 
             // Scenario combo box
             _scenarioComboBox = new ComboBox
             {
-                Size = new Size(80, 25),
-                Location = new Point(510, 5),
+                Size = new Size(96, 28),
+                Location = new Point(484, 12),
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Font = new Font("Microsoft YaHei UI", 9F)
+                Font = new Font("Segoe UI", 10F),
+                ForeColor = Color.FromArgb(55, 65, 81),
+                BackColor = Color.FromArgb(248, 249, 250),
+                Cursor = Cursors.Default
             };
             _scenarioComboBox.SelectedIndexChanged += ScenarioComboBox_SelectedIndexChanged;
 
             // Loading bar
             _loadingBar = new ProgressBar
             {
-                Size = new Size(400, 3),
-                Location = new Point(110, 16),
+                Size = new Size(320, 3),
+                Location = new Point(136, 14),
                 Style = ProgressBarStyle.Marquee,
                 MarqueeAnimationSpeed = 30,
-                Visible = false
+                Visible = false,
+                Cursor = Cursors.Default,
+                ForeColor = Color.FromArgb(59, 130, 246)
+                
             };
 
             // Status label
             _statusLabel = new Label
             {
-                Size = new Size(400, 25),
-                Location = new Point(110, 5),
-                Font = new Font("Microsoft YaHei UI", 8F),
-                ForeColor = Color.Gray,
+                Size = new Size(320, 28),
+                Location = new Point(136, 2),
+                Font = new Font("Segoe UI", 10F),
+                ForeColor = Color.FromArgb(107, 114, 128),
                 TextAlign = ContentAlignment.MiddleLeft,
+                Cursor = Cursors.Default,
                 Text = "输入文本后按 Ctrl+Enter 翻译"
             };
 
@@ -188,39 +239,126 @@ namespace TransInputMethod.Forms
                 _scenarioComboBox, _loadingBar, _statusLabel 
             });
 
-            this.Controls.Add(_mainTextBox);
-            this.Controls.Add(_controlPanel);
 
             this.ResumeLayout(false);
         }
 
         private void SetupForm()
         {
-            // Add shadow effect
-            this.Paint += (s, e) =>
-            {
-                var rect = new Rectangle(0, 0, this.Width - 1, this.Height - 1);
-                e.Graphics.DrawRectangle(new Pen(Color.FromArgb(200, 200, 200)), rect);
-            };
+            // Setup rounded corners and shadow
+            this.Paint += OnFormPaint;
+            this.Resize += (s, e) => this.Invalidate();
 
-            // Make form draggable
+            // Add proper text box padding by using a container panel
+            var textContainer = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.White,
+                Padding = new Padding(24, 20, 24, 16)
+            };
+            textContainer.Controls.Add(_mainTextBox);
+            
+            // Make form draggable - control panel
             _controlPanel.MouseDown += Form_MouseDown;
             _controlPanel.MouseMove += Form_MouseMove;
             _controlPanel.MouseUp += Form_MouseUp;
+            _controlPanel.Cursor = Cursors.SizeAll;
 
-            // Handle form deactivation
-            this.Deactivate += (s, e) => this.Hide();
+            // Make form draggable - form itself (empty areas)
+            this.MouseDown += Form_MouseDown;
+            this.MouseMove += Form_MouseMove;
+            this.MouseUp += Form_MouseUp;
+            
+            // Set cursor for dragging on form but not on text box
+            this.MouseEnter += (s, e) => {
+                if (!_mainTextBox.ClientRectangle.Contains(_mainTextBox.PointToClient(Cursor.Position)))
+                    this.Cursor = Cursors.SizeAll;
+            };
+            this.MouseLeave += (s, e) => this.Cursor = Cursors.Default;
+
+            // Handle form deactivation - no longer hide on deactivate
+            // Only hide when ESC is pressed
+            
+            // Update controls order
+            this.Controls.Clear();
+            this.Controls.Add(textContainer);
+            this.Controls.Add(_controlPanel);
         }
 
-        private Point _lastMousePosition;
+        private void OnFormPaint(object? sender, PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+            var cornerRadius = 16;
+            var mainRect = new Rectangle(0, 0, this.Width, this.Height);
+
+            // Clear the entire form with form background
+            g.Clear(this.BackColor);
+
+            // Draw main background with subtle gradient (no shadow)
+            using (var mainPath = CreateRoundedRectPath(mainRect, cornerRadius))
+            {
+                using (var gradientBrush = new System.Drawing.Drawing2D.LinearGradientBrush(
+                    mainRect, Color.FromArgb(255, 255, 255), Color.FromArgb(250, 251, 252), 90f))
+                {
+                    g.FillPath(gradientBrush, mainPath);
+                }
+            }
+
+            // Draw subtle border
+            using (var borderPath = CreateRoundedRectPath(mainRect, cornerRadius))
+            using (var borderPen = new Pen(Color.FromArgb(220, 223, 230), 1))
+            {
+                g.DrawPath(borderPen, borderPath);
+            }
+        }
+
+        private System.Drawing.Drawing2D.GraphicsPath CreateRoundedRectPath(Rectangle rect, int radius)
+        {
+            var path = new System.Drawing.Drawing2D.GraphicsPath();
+            
+            if (radius <= 0)
+            {
+                path.AddRectangle(rect);
+                return path;
+            }
+
+            int diameter = radius * 2;
+            var arc = new Rectangle(rect.Location, new Size(diameter, diameter));
+
+            // Top-left arc
+            path.AddArc(arc, 180, 90);
+
+            // Top-right arc
+            arc.X = rect.Right - diameter;
+            path.AddArc(arc, 270, 90);
+
+            // Bottom-right arc
+            arc.Y = rect.Bottom - diameter;
+            path.AddArc(arc, 0, 90);
+
+            // Bottom-left arc
+            arc.X = rect.Left;
+            path.AddArc(arc, 90, 90);
+
+            path.CloseFigure();
+            return path;
+        }
+
+
+        private Point _lastMouseScreenPosition;
         private bool _isDragging = false;
 
         private void Form_MouseDown(object? sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Left)
             {
+                // Convert to screen coordinates to avoid offset issues
+                var control = sender as Control ?? this;
+                _lastMouseScreenPosition = control.PointToScreen(e.Location);
                 _isDragging = true;
-                _lastMousePosition = e.Location;
             }
         }
 
@@ -228,14 +366,26 @@ namespace TransInputMethod.Forms
         {
             if (_isDragging)
             {
-                var deltaX = e.Location.X - _lastMousePosition.X;
-                var deltaY = e.Location.Y - _lastMousePosition.Y;
+                // Use screen coordinates for consistent calculation
+                var control = sender as Control ?? this;
+                var currentScreenPosition = control.PointToScreen(e.Location);
+                
+                var deltaX = currentScreenPosition.X - _lastMouseScreenPosition.X;
+                var deltaY = currentScreenPosition.Y - _lastMouseScreenPosition.Y;
+                
                 this.Location = new Point(this.Location.X + deltaX, this.Location.Y + deltaY);
+                _lastMouseScreenPosition = currentScreenPosition;
             }
         }
 
         private void Form_MouseUp(object? sender, MouseEventArgs e)
         {
+            _isDragging = false;
+        }
+
+        private void TextBox_MouseDown(object? sender, MouseEventArgs e)
+        {
+            // Prevent form dragging when clicking on text box
             _isDragging = false;
         }
 
@@ -280,7 +430,7 @@ namespace TransInputMethod.Forms
             if (string.IsNullOrWhiteSpace(_currentInputText))
             {
                 _statusLabel.Text = "输入文本后按 Ctrl+Enter 翻译";
-                _statusLabel.ForeColor = Color.Gray;
+                _statusLabel.ForeColor = Color.FromArgb(107, 114, 128);
             }
         }
 
@@ -288,13 +438,18 @@ namespace TransInputMethod.Forms
         {
             using (var g = _mainTextBox.CreateGraphics())
             {
-                var textSize = g.MeasureString(_mainTextBox.Text + "A", _mainTextBox.Font, _mainTextBox.Width);
+                // Calculate text size with proper padding consideration
+                var availableWidth = _mainTextBox.Width - 48; // Account for text box padding
+                var textSize = g.MeasureString(_mainTextBox.Text + "A", _mainTextBox.Font, availableWidth);
                 var lines = Math.Max(1, (int)Math.Ceiling(textSize.Height / _mainTextBox.Font.Height));
-                var newHeight = Math.Min(600, Math.Max(120, lines * (int)_mainTextBox.Font.Height + 50));
+                var baseHeight = 132; // Updated base height
+                var lineHeight = (int)(_mainTextBox.Font.Height * 1.4f); // Better line spacing
+                var newHeight = Math.Min(600, Math.Max(baseHeight, baseHeight + (lines - 1) * lineHeight));
                 
                 if (this.Height != newHeight)
                 {
                     this.Height = newHeight;
+                    this.Invalidate(); // Refresh painting when height changes
                 }
             }
         }
@@ -312,7 +467,7 @@ namespace TransInputMethod.Forms
                 if (_hasTranslated && !string.IsNullOrEmpty(_lastTranslatedText))
                 {
                     _statusLabel.Text = "正在复制并粘贴...";
-                    _statusLabel.ForeColor = Color.Blue;
+                    _statusLabel.ForeColor = Color.FromArgb(59, 130, 246);
                     
                     // Hide the form first
                     this.Hide();
@@ -334,7 +489,7 @@ namespace TransInputMethod.Forms
                     {
                         Clipboard.SetText(lastTranslation.TranslatedText);
                         _statusLabel.Text = "译文已复制到剪贴板，再次按 Ctrl+Enter 粘贴";
-                        _statusLabel.ForeColor = Color.Green;
+                        _statusLabel.ForeColor = Color.FromArgb(34, 197, 94);
                         _lastTranslatedText = lastTranslation.TranslatedText;
                         _hasTranslated = true;
                         return;
@@ -381,7 +536,7 @@ namespace TransInputMethod.Forms
 
                     await _dbContext.AddTranslationAsync(history);
                     _statusLabel.Text = "翻译完成，再次按 Ctrl+Enter 粘贴到光标处";
-                    _statusLabel.ForeColor = Color.Green;
+                    _statusLabel.ForeColor = Color.FromArgb(34, 197, 94);
 
                     // Refresh history navigation
                     await RefreshHistoryNavigation();
@@ -389,13 +544,13 @@ namespace TransInputMethod.Forms
                 else
                 {
                     _statusLabel.Text = result.ErrorMessage ?? "翻译失败";
-                    _statusLabel.ForeColor = Color.Red;
+                    _statusLabel.ForeColor = Color.FromArgb(239, 68, 68);
                 }
             }
             catch (Exception ex)
             {
                 _statusLabel.Text = $"翻译出错: {ex.Message}";
-                _statusLabel.ForeColor = Color.Red;
+                _statusLabel.ForeColor = Color.FromArgb(239, 68, 68);
             }
             finally
             {
@@ -408,7 +563,7 @@ namespace TransInputMethod.Forms
         {
             _loadingBar.Visible = true;
             _statusLabel.Text = "正在翻译...";
-            _statusLabel.ForeColor = Color.Blue;
+            _statusLabel.ForeColor = Color.FromArgb(59, 130, 246);
         }
 
         private void HideLoadingState()
@@ -463,7 +618,7 @@ namespace TransInputMethod.Forms
                 var item = _currentHistory[_historyIndex];
                 _mainTextBox.Text = $"{item.SourceText}\n---\n{item.TranslatedText}";
                 _statusLabel.Text = $"历史记录 ({item.Timestamp:MM-dd HH:mm})";
-                _statusLabel.ForeColor = Color.Gray;
+                _statusLabel.ForeColor = Color.FromArgb(107, 114, 128);
             }
         }
 
@@ -492,7 +647,7 @@ namespace TransInputMethod.Forms
             if (_scenarioComboBox.SelectedItem != null)
             {
                 _statusLabel.Text = $"当前场景: {_scenarioComboBox.SelectedItem}";
-                _statusLabel.ForeColor = Color.Gray;
+                _statusLabel.ForeColor = Color.FromArgb(107, 114, 128);
             }
         }
 
@@ -500,55 +655,94 @@ namespace TransInputMethod.Forms
         {
             try
             {
-                // Get the foreground window (currently active window)
+                // 获取前台窗口
                 IntPtr foregroundWindow = GetForegroundWindow();
                 if (foregroundWindow == IntPtr.Zero)
                     return GetScreenCenterPosition();
 
-                // Get the thread ID of the foreground window
+                // 获取前台窗口的线程 ID
                 uint foregroundThreadId = GetWindowThreadProcessId(foregroundWindow, out _);
-                uint currentThreadId = GetCurrentThreadId();
-
-                // Attach to the foreground window's thread to get caret position
-                if (foregroundThreadId != currentThreadId)
+                
+                // 使用 GUITHREADINFO 获取光标信息
+                GUITHREADINFO guiInfo = new GUITHREADINFO();
+                guiInfo.cbSize = (uint)Marshal.SizeOf(guiInfo);
+                
+                if (GetGUIThreadInfo(foregroundThreadId, ref guiInfo))
                 {
-                    AttachThreadInput(currentThreadId, foregroundThreadId, true);
-                }
-
-                // Get the focus window and caret position
-                IntPtr focusWindow = GetFocus();
-                if (focusWindow != IntPtr.Zero && GetCaretPos(out Point caretPos))
-                {
-                    // Convert caret position to screen coordinates
-                    ClientToScreen(focusWindow, ref caretPos);
-                    
-                    // Detach from the thread
-                    if (foregroundThreadId != currentThreadId)
+                    // 检查是否有光标窗口
+                    if (guiInfo.hwndCaret != IntPtr.Zero)
                     {
-                        AttachThreadInput(currentThreadId, foregroundThreadId, false);
+                        // 获取光标位置（相对于光标窗口）
+                        Point caretPos = new Point(guiInfo.rcCaret.left, guiInfo.rcCaret.top);
+                        
+                        // 转换为屏幕坐标
+                        ClientToScreen(guiInfo.hwndCaret, ref caretPos);
+                        
+                        // 应用 DPI 缩放修正（如果需要）
+                        var correctedPos = ApplyDpiScaling(caretPos);
+                        
+                        // 添加调试信息
+                        System.Diagnostics.Debug.WriteLine($"GUITHREADINFO光标位置: {caretPos}, 修正后位置: {correctedPos}");
+                        
+                        return correctedPos;
                     }
-                    
-                    return caretPos;
                 }
-
-                // Detach from the thread
-                if (foregroundThreadId != currentThreadId)
-                {
-                    AttachThreadInput(currentThreadId, foregroundThreadId, false);
-                }
+                
+                // 如果无法获取光标位置，尝试获取鼠标位置作为备用方案
+                return GetMousePositionFallback();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"获取文本光标位置失败: {ex.Message}");
+                return GetMousePositionFallback();
             }
+        }
 
-            // Fallback to screen center if can't get caret position
+        private Point ApplyDpiScaling(Point originalPos)
+        {
+            try
+            {
+                // 获取 DPI awareness
+                using (var graphics = Graphics.FromHwnd(IntPtr.Zero))
+                {
+                    var dpiX = graphics.DpiX;
+                    var dpiY = graphics.DpiY;
+                    
+                    // 如果应用程序是 DPI-aware 的，可能不需要额外的缩放
+                    // 这取决于应用程序清单设置
+                    
+                    // 大多数情况下，ClientToScreen 已经返回了正确的屏幕坐标
+                    System.Diagnostics.Debug.WriteLine($"DPI: {dpiX}x{dpiY}, 原始位置: {originalPos}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DPI缩放检查失败: {ex.Message}");
+            }
+            
+            // 大多数情况下，直接返回原始位置即可
+            return originalPos;
+        }
+
+        private Point GetMousePositionFallback()
+        {
+            if (GetCursorPos(out Point mousePos))
+            {
+                // 在鼠标位置稍微偏移，避免遮挡
+                System.Diagnostics.Debug.WriteLine($"使用鼠标位置作为备用方案: {mousePos}");
+                return new Point(mousePos.X + 10, mousePos.Y + 10);
+            }
+            
             return GetScreenCenterPosition();
         }
 
         private Point GetScreenCenterPosition()
         {
             var screen = Screen.PrimaryScreen;
+            if (screen == null)
+            {
+                return new Point(300, 300); // fallback position
+            }
             var centerX = screen.WorkingArea.Left + (screen.WorkingArea.Width - this.Width) / 2;
             var centerY = screen.WorkingArea.Top + (screen.WorkingArea.Height - this.Height) / 2;
             return new Point(centerX, centerY);
@@ -576,38 +770,91 @@ namespace TransInputMethod.Forms
             }
         }
 
+        /// <summary>
+        /// 把窗口提到前台并把键盘焦点给 _mainTextBox
+        /// </summary>
+        private void ForceFocus()
+        {
+            IntPtr fgWin = GetForegroundWindow();
+            uint fgThread = GetWindowThreadProcessId(fgWin, out _);
+            uint thisThread = GetCurrentThreadId();
+
+            // 把当前线程临时附加到前台窗口的输入队列
+            AttachThreadInput(thisThread, fgThread, true);
+
+            // 把本窗体变成前台窗口
+            SetForegroundWindow(this.Handle);     // 激活窗体
+            this.Activate();
+
+            // 把焦点给文本框
+            SetFocus(_mainTextBox.Handle);
+
+            // 分离输入队列，恢复系统状态
+            AttachThreadInput(thisThread, fgThread, false);
+        }
+
         public async Task ShowAtCursor()
         {
             var cursorPos = GetTextCursorPosition();
             var screen = Screen.FromPoint(cursorPos);
-            
-            // Position the form near cursor but ensure it's fully visible
-            var x = Math.Min(cursorPos.X, screen.WorkingArea.Right - this.Width);
-            var y = Math.Min(cursorPos.Y + 20, screen.WorkingArea.Bottom - this.Height);
-            
+
+            // 计算窗口位置，确保不超出屏幕边界
+            var x = cursorPos.X;
+            var y = cursorPos.Y + 25; // 在光标下方显示
+
+            // 确保窗口完全在屏幕内
+            if (x + this.Width > screen.WorkingArea.Right)
+                x = screen.WorkingArea.Right - this.Width;
+            if (x < screen.WorkingArea.Left)
+                x = screen.WorkingArea.Left;
+
+            if (y + this.Height > screen.WorkingArea.Bottom)
+            {
+                // 如果下方空间不足，显示在光标上方
+                y = cursorPos.Y - this.Height - 10;
+                if (y < screen.WorkingArea.Top)
+                    y = screen.WorkingArea.Top;
+            }
+
             this.Location = new Point(x, y);
-            
+
+            // 添加调试信息
+            System.Diagnostics.Debug.WriteLine($"光标位置: {cursorPos}, 窗体位置: {this.Location}");
+
             // Reload configuration each time the form is shown
             await LoadConfiguration();
-            
+
             this.Show();
-            this.Activate();
-            this.TopMost = true;
-            
-            // Ensure text box gets focus with a slight delay
-            await Task.Delay(10);
-            _mainTextBox.Focus();
-            _mainTextBox.Select();
-            
-            // Clear previous content and reset state
+            this.BringToFront();      // 可选
+            this.TopMost = true;      // 如果需要置顶
+
+            // 使用 BeginInvoke 确保在消息泵下一帧执行
+            this.BeginInvoke(new Action(() =>
+            {
+                ForceFocus();         // ←←← 核心调用
+            }));
+
+            // 下面是你原来的状态复位逻辑
             if (!_isTranslating)
             {
                 _mainTextBox.Clear();
                 _statusLabel.Text = "输入文本后按 Ctrl+Enter 翻译";
-                _statusLabel.ForeColor = Color.Gray;
+                _statusLabel.ForeColor = Color.FromArgb(107, 114, 128);
                 _hasTranslated = false;
                 _lastTranslatedText = string.Empty;
             }
+        }
+
+        // 移除 OnShown 的焦点处理逻辑
+
+        /// <summary>
+        /// 兜底确保文本框获得焦点
+        /// </summary>
+        protected override void OnActivated(EventArgs e)
+        {
+            base.OnActivated(e);
+            if (!_mainTextBox.Focused)
+                _mainTextBox.BeginInvoke(new Action(() => _mainTextBox.Focus()));
         }
     }
 }
