@@ -2,9 +2,12 @@
 
 一款轻量级、高效的全局翻译工具，支持中英文互译，像输入法一样随时呼出使用。
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg)
-![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/maxazure/TransInputMethod/blob/main/LICENSE)
+[![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg)](https://dotnet.microsoft.com/download/dotnet/8.0)
+[![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://github.com/maxazure/TransInputMethod/releases)
+[![GitHub release](https://img.shields.io/github/v/release/maxazure/TransInputMethod)](https://github.com/maxazure/TransInputMethod/releases)
+[![GitHub stars](https://img.shields.io/github/stars/maxazure/TransInputMethod)](https://github.com/maxazure/TransInputMethod/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/maxazure/TransInputMethod)](https://github.com/maxazure/TransInputMethod/issues)
 
 ## ✨ 特性
 
@@ -35,11 +38,18 @@
 - Windows 10/11
 - .NET 8.0 Runtime
 
-### 安装步骤
+### 方式一：下载预编译版本（推荐）
+
+1. **下载最新版本**
+   - 访问 [Releases 页面](https://github.com/maxazure/TransInputMethod/releases)
+   - 下载适合您系统的版本
+   - 解压后直接运行 `TransInputMethod.exe`
+
+### 方式二：从源码构建
 
 1. **克隆项目**
    ```bash
-   git clone https://github.com/your-username/TransInputMethod.git
+   git clone https://github.com/maxazure/TransInputMethod.git
    cd TransInputMethod
    ```
 
@@ -204,7 +214,7 @@ dotnet publish -c Release -r win-x64 --self-contained false
 
 欢迎贡献代码！请遵循以下步骤：
 
-1. Fork 项目
+1. Fork [本项目](https://github.com/maxazure/TransInputMethod)
 2. 创建功能分支：`git checkout -b feature/AmazingFeature`
 3. 提交更改：`git commit -m 'Add some AmazingFeature'`
 4. 推送分支：`git push origin feature/AmazingFeature`
@@ -229,9 +239,9 @@ dotnet publish -c Release -r win-x64 --self-contained false
 
 如果您遇到问题或有功能建议，请通过以下方式联系：
 
-- 📧 Email: your-email@example.com
-- 🐛 Issues: [GitHub Issues](https://github.com/your-username/TransInputMethod/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/your-username/TransInputMethod/discussions)
+- 📧 Email: maxazure@gmail.com
+- 🐛 Issues: [GitHub Issues](https://github.com/maxazure/TransInputMethod/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/maxazure/TransInputMethod/discussions)
 
 ## 🙏 致谢
 
@@ -245,6 +255,6 @@ dotnet publish -c Release -r win-x64 --self-contained false
 
 **如果这个项目对您有帮助，请考虑给它一个 ⭐ Star！**
 
-Made with ❤️ by [Your Name]
+Made with ❤️ by [maxazure](https://github.com/maxazure)
 
 </div>
