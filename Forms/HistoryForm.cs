@@ -41,6 +41,20 @@ namespace TransInputMethod.Forms
             this.MinimumSize = new Size(600, 400);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.Font = new Font("Microsoft YaHei UI", 9F);
+            
+            // Set form icon from embedded resource
+            try
+            {
+                using var stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("TransInputMethod.Resources.icon.ico");
+                if (stream != null)
+                {
+                    this.Icon = new Icon(stream);
+                }
+            }
+            catch
+            {
+                // Ignore icon loading errors
+            }
 
             // Search panel
             _searchPanel = new Panel

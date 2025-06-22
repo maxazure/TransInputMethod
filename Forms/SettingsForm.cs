@@ -72,6 +72,20 @@ namespace TransInputMethod.Forms
             this.Font = new Font("Microsoft YaHei UI", 9F);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
+            
+            // Set form icon from embedded resource
+            try
+            {
+                using var stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("TransInputMethod.Resources.icon.ico");
+                if (stream != null)
+                {
+                    this.Icon = new Icon(stream);
+                }
+            }
+            catch
+            {
+                // Ignore icon loading errors
+            }
 
             CreateTabControl();
             CreateApiTab();

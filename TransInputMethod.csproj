@@ -6,11 +6,35 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    
+    <!-- Application Information -->
+    <AssemblyTitle>TransInputMethod</AssemblyTitle>
+    <AssemblyDescription>悬浮翻译输入法工具 - 全局热键触发的悬浮翻译窗口</AssemblyDescription>
+    <AssemblyProduct>TransInputMethod</AssemblyProduct>
+    <AssemblyCompany>maxazure</AssemblyCompany>
+    <AssemblyCopyright>Copyright © maxazure 2024</AssemblyCopyright>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    <Version>0.1.0</Version>
+    
+    <!-- Application Icon -->
+    <ApplicationIcon>Resources\icon.ico</ApplicationIcon>
+    
+    <!-- Additional Metadata -->
+    <Product>TransInputMethod</Product>
+    <Company>maxazure</Company>
+    <Authors>maxazure</Authors>
+    <Copyright>Copyright © maxazure 2024</Copyright>
+    <Description>悬浮翻译输入法工具 - 支持中英文互译的全局悬浮窗口</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.6" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\icon.ico" />
   </ItemGroup>
 
 </Project>

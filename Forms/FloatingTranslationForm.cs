@@ -116,6 +116,20 @@ namespace TransInputMethod.Forms
             this.Size = new Size(600, 132);
             this.MinimumSize = new Size(600, 132);
             this.MaximumSize = new Size(600, 600);
+            
+            // Set form icon from embedded resource
+            try
+            {
+                using var stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("TransInputMethod.Resources.icon.ico");
+                if (stream != null)
+                {
+                    this.Icon = new Icon(stream);
+                }
+            }
+            catch
+            {
+                // Ignore icon loading errors for floating form
+            }
 
             // Main text box with improved placeholder
             _mainTextBox = new TextBox
