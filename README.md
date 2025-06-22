@@ -55,13 +55,43 @@
    ```
 
 2. **构建项目**
+   
+   **使用构建脚本（推荐）**：
    ```bash
+   # Windows 批处理脚本（双击运行或命令行执行）
+   build.bat
+   
+   # PowerShell 脚本
+   .\build.ps1
+   
+   # PowerShell 脚本 + 创建ZIP压缩包
+   .\build.ps1 -CreateZip
+   ```
+   
+   构建脚本会自动：
+   - ✅ 检查 .NET SDK 8.0+ 环境
+   - 🧹 清理旧构建文件
+   - 📦 还原依赖项并构建项目
+   - 🚀 发布自包含版本到 `TransInputMethod-Portable/`
+   - 📋 创建说明文件、安装脚本和卸载脚本
+   
+   **手动构建**：
+   ```bash
+   # 开发调试
    dotnet build
+   dotnet run
+   
+   # 发布版本
+   dotnet publish -c Release -r win-x64 --self-contained true --output "./TransInputMethod-Portable"
    ```
 
 3. **运行应用**
    ```bash
+   # 开发模式
    dotnet run
+   
+   # 或运行构建后的便携版
+   .\TransInputMethod-Portable\TransInputMethod.exe
    ```
 
 ### 首次配置

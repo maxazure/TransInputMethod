@@ -66,17 +66,50 @@ makensis installer.nsi
 
 ## 构建流程
 
-### 前置要求
-- .NET 8.0 SDK
+### 📋 快速构建（推荐）
+
+使用提供的构建脚本，自动检查环境并构建发布版本：
+
+#### Windows 批处理脚本
+```bash
+# 双击运行或命令行执行
+build.bat
+```
+
+#### PowerShell 脚本
+```powershell
+# 基本构建
+.\build.ps1
+
+# 同时创建 ZIP 压缩包
+.\build.ps1 -CreateZip
+
+# 调试版本构建
+.\build.ps1 -Configuration Debug
+```
+
+**构建脚本功能**：
+- ✅ 自动检查 .NET SDK 8.0+ 是否安装
+- 🔗 未安装时提供下载链接
+- 🧹 清理旧的构建文件
+- 📦 还原依赖项并构建项目
+- 🚀 发布自包含版本到 `TransInputMethod-Portable/`
+- 📋 创建说明文件、安装脚本和卸载脚本
+- 💡 提供使用提示和结果展示
+
+### 手动构建
+
+#### 前置要求
+- .NET 8.0 SDK 或更高版本
 - Windows 10/11 开发环境
 
-### 1. 构建应用程序
+#### 构建命令
 ```bash
 # 自包含版本（推荐）
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false --output "./TransInputMethod-Portable"
 
 # 依赖框架版本
-dotnet publish -c Release -r win-x64 --self-contained false
+dotnet publish -c Release -r win-x64 --self-contained false --output "./publish-framework"
 ```
 
 ### 2. 创建便携版
@@ -140,11 +173,45 @@ makensis installer.nsi
 2. **NSIS 安装包** - 适合普通用户，安装体验好
 3. **MSI 安装包** - 适合企业部署和系统管理员
 
-### 自动化部署
-可以配置 GitHub Actions 自动构建:
-- 在 Release 时自动构建所有格式
-- 上传到 GitHub Releases
-- 生成校验和文件
+### 自动化部署 ✅ 已完成
+
+**GitHub Actions 自动发布系统**
+
+配置文件: `.github/workflows/release.yml`
+
+**触发条件**: 推送版本标签 (如 `v0.1.0`)
+
+**自动化流程**:
+1. 🔄 检出代码并设置 .NET 8.0 环境
+2. 📦 构建自包含版本和框架依赖版本
+3. 🗂️ 创建便携版目录并添加说明文件
+4. 📋 生成安装脚本 (`Setup.bat`) 和卸载脚本 (`Uninstall.bat`)
+5. 🗜️ 创建 ZIP 压缩包
+6. 🔐 生成 SHA256 校验和文件
+7. 📝 自动创建 GitHub Release 并上传所有文件
+
+**发布步骤**:
+```bash
+# 1. 确保代码已提交
+git add .
+git commit -m "准备发布 v0.1.0"
+git push origin main
+
+# 2. 创建版本标签
+git tag v0.1.0
+
+# 3. 推送标签触发自动发布
+git push origin v0.1.0
+```
+
+**生成的文件**:
+- `TransInputMethod-v0.1.0-Portable.zip` (~150MB) - 便携版
+- `TransInputMethod-v0.1.0-Framework.zip` (~10MB) - 框架依赖版
+- `checksums.txt` - SHA256校验和文件
+
+**监控地址**:
+- 构建状态: https://github.com/maxazure/TransInputMethod/actions
+- 发布页面: https://github.com/maxazure/TransInputMethod/releases
 
 ## 故障排除
 

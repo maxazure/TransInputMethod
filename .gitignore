@@ -49,6 +49,10 @@ TransInputMethod-*-Setup.exe
 checksums.txt
 *.msi
 
+# Keep build scripts
+!build.bat
+!build.ps1
+
 # OS generated files
 .DS_Store
 .DS_Store?
