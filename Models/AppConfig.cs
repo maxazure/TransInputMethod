@@ -14,7 +14,7 @@ namespace TransInputMethod.Models
 
     public class HotkeySettings
     {
-        public string ShowWindowHotkey { get; set; } = "Shift+Enter";
+        public string ShowWindowHotkey { get; set; } = "Shift+Space";
         public string TranslateHotkey { get; set; } = "Ctrl+Enter";
     }
 

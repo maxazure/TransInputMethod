@@ -217,7 +217,7 @@ namespace TransInputMethod.Forms
             };
             _modelComboBox.Items.AddRange(new string[] 
             { 
-                "gpt-4o", "gpt-4o-mini", "gpt-4", "gpt-4-turbo", "gpt-3.5-turbo" 
+                "gpt-4.1-nano", "gpt-4o-mini"
             });
             
             y += 35;
@@ -894,8 +894,8 @@ namespace TransInputMethod.Forms
                 // Add a default scenario for testing
                 testConfig.Scenarios.Add(new TranslationScenario
                 {
-                    Name = "测试",
-                    Prompt = "你是一个专业的翻译助手。请将用户输入的文本准确翻译。如果是中文，翻译成英文；如果是英文，翻译成中文。只返回翻译结果，不要添加任何解释。",
+                    Name = "口语化",
+                    Prompt = "你是生活在新西兰多年的软件工程师，精通中文和英文，你的任务是在中文和英文之间翻译，如果是中文就翻译成英文，反之亦然。在翻译时要尽量口语化并且礼貌，要地道的英语表达，不要直接翻译，在专业用词方面要准确。只返回翻译结果，不要添加任何解释。",
                     IsDefault = true
                 });
 

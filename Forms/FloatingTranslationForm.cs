@@ -245,10 +245,18 @@ namespace TransInputMethod.Forms
 
         private void SetupForm()
         {
-            // Setup rounded corners and shadow
+            // Setup form painting for custom border
             this.Paint += OnFormPaint;
             this.Resize += (s, e) => this.Invalidate();
 
+            // Create a main container with padding to leave space for border
+            var mainContainer = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(1), // 1px padding for border space
+                BackColor = Color.Transparent
+            };
+            
             // Add proper text box padding by using a container panel
             var textContainer = new Panel
             {
@@ -257,6 +265,13 @@ namespace TransInputMethod.Forms
                 Padding = new Padding(24, 20, 24, 16)
             };
             textContainer.Controls.Add(_mainTextBox);
+            
+            // Update control panel dock
+            _controlPanel.Dock = DockStyle.Bottom;
+            
+            // Add controls to main container
+            mainContainer.Controls.Add(textContainer);
+            mainContainer.Controls.Add(_controlPanel);
             
             // Make form draggable - control panel
             _controlPanel.MouseDown += Form_MouseDown;
@@ -281,70 +296,15 @@ namespace TransInputMethod.Forms
             
             // Update controls order
             this.Controls.Clear();
-            this.Controls.Add(textContainer);
-            this.Controls.Add(_controlPanel);
+            this.Controls.Add(mainContainer);
         }
 
-        private void OnFormPaint(object? sender, PaintEventArgs e)
+        private void OnFormPaint(object sender, PaintEventArgs e)
         {
-            var g = e.Graphics;
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
-
-            var cornerRadius = 16;
-            var mainRect = new Rectangle(0, 0, this.Width, this.Height);
-
-            // Clear the entire form with form background
-            g.Clear(this.BackColor);
-
-            // Draw main background with subtle gradient (no shadow)
-            using (var mainPath = CreateRoundedRectPath(mainRect, cornerRadius))
-            {
-                using (var gradientBrush = new System.Drawing.Drawing2D.LinearGradientBrush(
-                    mainRect, Color.FromArgb(255, 255, 255), Color.FromArgb(250, 251, 252), 90f))
-                {
-                    g.FillPath(gradientBrush, mainPath);
-                }
-            }
-
-            // Draw subtle border
-            using (var borderPath = CreateRoundedRectPath(mainRect, cornerRadius))
-            using (var borderPen = new Pen(Color.FromArgb(220, 223, 230), 1))
-            {
-                g.DrawPath(borderPen, borderPath);
-            }
-        }
-
-        private System.Drawing.Drawing2D.GraphicsPath CreateRoundedRectPath(Rectangle rect, int radius)
-        {
-            var path = new System.Drawing.Drawing2D.GraphicsPath();
-            
-            if (radius <= 0)
-            {
-                path.AddRectangle(rect);
-                return path;
-            }
-
-            int diameter = radius * 2;
-            var arc = new Rectangle(rect.Location, new Size(diameter, diameter));
-
-            // Top-left arc
-            path.AddArc(arc, 180, 90);
-
-            // Top-right arc
-            arc.X = rect.Right - diameter;
-            path.AddArc(arc, 270, 90);
-
-            // Bottom-right arc
-            arc.Y = rect.Bottom - diameter;
-            path.AddArc(arc, 0, 90);
-
-            // Bottom-left arc
-            arc.X = rect.Left;
-            path.AddArc(arc, 90, 90);
-
-            path.CloseFigure();
-            return path;
+            // Draw custom light gray border
+            using var pen = new Pen(Color.FromArgb(209, 213, 219), 1);
+            var rect = new Rectangle(0, 0, this.Width - 1, this.Height - 1);
+            e.Graphics.DrawRectangle(pen, rect);
         }
 
 

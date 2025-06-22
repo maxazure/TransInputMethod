@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TransInputMethod", "TransInputMethod.csproj", "{11ACA788-AA56-26E1-DF06-7F352B9AEE17}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{11ACA788-AA56-26E1-DF06-7F352B9AEE17}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11ACA788-AA56-26E1-DF06-7F352B9AEE17}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11ACA788-AA56-26E1-DF06-7F352B9AEE17}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11ACA788-AA56-26E1-DF06-7F352B9AEE17}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {80F22BB3-E787-4DA2-8E07-0CA5113097F4}
+	EndGlobalSection
+EndGlobal

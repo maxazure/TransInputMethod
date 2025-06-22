@@ -41,6 +41,7 @@ namespace TransInputMethod.Services
                 
                 _httpClient.Timeout = TimeSpan.FromSeconds(currentProvider.Timeout);
                 
+                // Store current config to track changes
                 _lastConfig = config;
             }
         }
@@ -71,9 +72,11 @@ namespace TransInputMethod.Services
             var provider1 = GetCurrentProvider(config1);
             var provider2 = GetCurrentProvider(config2);
             
-            return provider1.BaseUrl == provider2.BaseUrl &&
+            return provider1.Id == provider2.Id &&
+                   provider1.BaseUrl == provider2.BaseUrl &&
                    provider1.ApiKey == provider2.ApiKey &&
                    provider1.OrganizationId == provider2.OrganizationId &&
+                   provider1.Model == provider2.Model &&
                    provider1.Timeout == provider2.Timeout;
         }
 

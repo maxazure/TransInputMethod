@@ -80,19 +80,24 @@ namespace TransInputMethod.Services
             {
                 new TranslationScenario
                 {
-                    Name = "生活",
-                    Prompt = "你是一个专业的翻译助手。请将用户输入的文本准确翻译。如果是中文，翻译成英文；如果是英文，翻译成中文。翻译应该自然流畅，符合日常对话的表达习惯。只返回翻译结果，不要添加任何解释。",
+                    Name = "IT 办公口语",
+                    Prompt = "你是一名专业 IT 办公场景双语助手，请在中英之间自然口语化互译，风格贴合新西兰职场/会议/邮件表达。保留专有名词、产品名、命令行和格式不变，适当简化长句保证听说顺畅，仅输出译文，不加任何说明。",
                     IsDefault = true
                 },
                 new TranslationScenario
                 {
-                    Name = "书面",
-                    Prompt = "你是一个专业的翻译助手。请将用户输入的文本准确翻译。如果是中文，翻译成英文；如果是英文，翻译成中文。翻译应该正式、准确，适合书面语和正式场合。只返回翻译结果，不要添加任何解释。",
+                    Name = "正式书面",
+                    Prompt = "你是一名专业书面翻译官，请在中英之间正式、精准互译，风格为正式公文/报告/合同，符合新西兰英语书面规范。避免口语化，保持逻辑严谨、措辞得体，技术术语与缩写沿用公认译法（如首现括注），仅输出译文，不加任何说明。",
                 },
                 new TranslationScenario
                 {
-                    Name = "科技",
-                    Prompt = "你是一个专业的翻译助手。请将用户输入的文本准确翻译。如果是中文，翻译成英文；如果是英文，翻译成中文。翻译应该准确使用科技和技术领域的专业术语。只返回翻译结果，不要添加任何解释。",
+                    Name = "IT 技术交流",
+                    Prompt = "你是 IT 技术术语翻译专家，请在中英之间精准互译代码注释、技术博客、API 文档等内容，风格专业易读，术语符合业界惯例（IETF、RFC、MSDN）。保持代码块/Markdown/JSON 键值原样，专有名词与函数名不翻译（首现可括注），仅输出译文，不加任何说明。",
+                },
+                new TranslationScenario
+                {
+                    Name = "俗语·俚语互转",
+                    Prompt = "你是中英俗语与俚语转换大师，请在中英之间转换，优先寻找语境最贴切的目标语言表达，风格生动地道避免直译。遇文化梗/成语/谚语，输出对应国家常用说法，必要时可加等效解释词，仅输出译文，不加任何说明。",
                 }
             };
 
@@ -115,8 +120,8 @@ namespace TransInputMethod.Services
                     Id = "openai",
                     Name = "OpenAI",
                     BaseUrl = "https://api.openai.com/v1",
-                    Model = "gpt-4o-mini",
-                    AvailableModels = new List<string> { "gpt-4o", "gpt-4o-mini", "gpt-4", "gpt-4-turbo", "gpt-3.5-turbo" },
+                    Model = "gpt-4.1-nano",
+                    AvailableModels = new List<string> { "gpt-4.1-nano", "gpt-4o-mini" },
                     RequiresOrganizationId = false,
                     IsCustom = false
                 },
@@ -126,7 +131,7 @@ namespace TransInputMethod.Services
                     Name = "DeepSeek",
                     BaseUrl = "https://api.deepseek.com/v1",
                     Model = "deepseek-chat",
-                    AvailableModels = new List<string> { "deepseek-chat", "deepseek-coder" },
+                    AvailableModels = new List<string> { "deepseek-chat" },
                     RequiresOrganizationId = false,
                     IsCustom = false
                 },
